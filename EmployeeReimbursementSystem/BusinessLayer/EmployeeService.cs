@@ -36,7 +36,7 @@ public class EmployeeService : IEmployeeService {
             return null!;
         }
 
-        return _ier.PostEmployee(email, password);
+        return _ier.PostEmployee(email, password, 0);
     }
 
     public Employee PostEmployee(string email, string password, int roleid) {

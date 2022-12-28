@@ -3,6 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
+/**
+ * TODO, Deprecate this class
+ * - Merging the logger class into one.
+ */
 namespace RepositoryLayer
 {
     public interface ILoggerTicketRepository {

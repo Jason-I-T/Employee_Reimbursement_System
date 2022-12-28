@@ -7,6 +7,12 @@ using Microsoft.Data.SqlClient;
 
 using ModelLayer;
 
+/**
+ * TODO, Reduce the number of repeated lines of code and increase readability
+ * - Identify where code keeps getting reused, seperate functionality into 
+ *   seperate methods.
+ * - Add in loggers.
+ */
 namespace RepositoryLayer;
 public interface ITicketRepository {
     ReimburseTicket PostTicket(string guid, string r, double a, string d, DateTime t, int eId);
