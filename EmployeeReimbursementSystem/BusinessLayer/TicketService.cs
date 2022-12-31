@@ -23,65 +23,48 @@ public class TicketService : ITicketService {
     private readonly IEmployeeRepository _ier;
     private IEmployeeValidationService _ievs;
     private ITicketValidationService _itvs;
-    public TicketService(ITicketRepository itr, IEmployeeRepository ier) {
+    private IDataLogger _logger;
+    public TicketService(ITicketRepository itr, IEmployeeRepository ier, IEmployeeValidationService ievs, ITicketValidationService itvs, IDataLogger logger) {
         this._itr = itr;
         this._ier = ier;
-        this._ievs = new EmployeeValidationService(this._ier);
-        this._itvs = new TicketValidationService(this._itr);
+        this._ievs = ievs;
+        this._itvs = itvs;
+        this._logger = logger;
     }
     
     public ReimburseTicket AddTicket(int empId, string reason, double amount, string desc) {
-        if(!_ievs.isEmployee(empId) || !_itvs.ValidTicket(reason, amount, desc)) {
-            Console.WriteLine("Invalid employeeId, or your ticket was invalid.");
+        if(!_itvs.ValidTicket(reason, amount, desc)) {
+            _logger.LogError("AddTicket", "POST", $"{empId}, {reason}, {amount}, {desc}", "Ticket input is invalid");
             return null!;
         }
         string guid = Guid.NewGuid().ToString();
-        DateTime timeMade = DateTime.Now;
-        return _itr.PostTicket(guid, reason, amount, desc, timeMade, empId);
+        return _itr.PostTicket(guid, reason, Math.Round(amount, 2), desc, DateTime.Now, empId);
     }
 
     public Queue<ReimburseTicket> GetPendingTickets(int managerId) {
         if(!_ievs.isManager(managerId)) {
-            Console.WriteLine("Employee does not exist or have the righ permissions");
+            _logger.LogError("GetPending", "GET", managerId, "Invalid managerId");
             return null!;
         } 
-        
         return _itr.GetPending(managerId);
     }
 
     public ReimburseTicket ApproveTicket(int empId, string ticketId) {
         if(!_ievs.isManager(empId) || !_itvs.ValidStatusChange(empId, ticketId)){
-            Console.WriteLine("Invalid manager Id, manager is trying edit an invalid ticket, or ticket doesn't exist");
+            _logger.LogError("ApproveTicket", "PUT", $"{empId}, {ticketId}", "Invalid managerId or invalid change requested");
             return null!;
         } 
-
         return _itr.UpdateTicket(ticketId, 1);
     }
 
     public ReimburseTicket DenyTicket(int empId, string ticketId) {
         if(!_ievs.isManager(empId) || !_itvs.ValidStatusChange(empId, ticketId)){
-            Console.WriteLine("Invalid manager Id, manager is trying to edit an invalid ticket, or ticket doesn't exist");
+            _logger.LogError("DenyTicket", "PUT", $"{empId}, {ticketId}", "Invalid managerId or invalid change requested");
             return null!;
         } 
-
         return _itr.UpdateTicket(ticketId, 2);
     }
 
-    public List<ReimburseTicket> GetEmployeeTickets(int empId) {
-        if(!_ievs.isEmployee(empId)) {
-            Console.WriteLine("Invalid employeeId");
-            return null!;
-        } 
-
-        return _itr.GetTickets(empId);
-    }
-
-    public List<ReimburseTicket> GetEmployeeTickets(int empId, int status) {
-        if(!_ievs.isEmployee(empId)) {
-            Console.WriteLine("Invalid employeeId");
-            return null!;
-        }
-    
-        return _itr.GetTickets(empId, status);
-    }
+    public List<ReimburseTicket> GetEmployeeTickets(int empId) => _itr.GetTickets(empId);
+    public List<ReimburseTicket> GetEmployeeTickets(int empId, int status) => _itr.GetTickets(empId, status);
 }

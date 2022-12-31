@@ -56,22 +56,6 @@ namespace Tests.Business
         }
 
         [Theory]
-        [InlineData("t1")]
-        [InlineData("t3")]
-        [InlineData("t0")]
-        [InlineData("t4")]
-        public void IsTicketTest(string ticketId) {
-            string[] s = {"t0", "t4"};
-            var mtr = new MockTicketRepository();
-            var ivs = new TicketValidationService(mtr);
-
-            bool result = ivs.isTicket(ticketId);
-
-            if(Array.IndexOf(s, ticketId) > -1) Assert.False(result);
-            else Assert.True(result);            
-        }
-
-        [Theory]
         [InlineData(2, "t1")]
         [InlineData(1, "t1")]
         [InlineData(2, "t3")]

@@ -12,7 +12,6 @@ public interface ITicketValidationService {
     public bool ValidAmount(double amount);
     public bool ValidDescription(string description);
     public bool ValidTicket(string reason, double amount, string description);
-    public bool isTicket(string ticketId);
     public bool ValidStatusChange(int managerId, string ticketId);
 }
 
@@ -25,11 +24,6 @@ public class TicketValidationService : ITicketValidationService {
     public bool ValidDescription(string description) => description.Length > 1;
     public bool ValidAmount(double amount) => (amount > 0 && amount < 10000);
     #endregion
-
-    public bool isTicket(string ticketId) {
-        if(_itr.GetTicket(ticketId) is null) return false;
-        else return true;
-    }
 
     public bool ValidStatusChange(int managerId, string ticketId) {
         ReimburseTicket tmp = _itr.GetTicket(ticketId);

@@ -19,9 +19,9 @@ namespace RepositoryLayer
 
     public class EmployeeRepository : IEmployeeRepository {
         // Injecting a logger
-        private readonly IRepositoryLogger _logger;
+        private readonly IDataLogger _logger;
         private string _conString;
-        public EmployeeRepository(IRepositoryLogger logger) {
+        public EmployeeRepository(IDataLogger logger) {
             this._logger = logger;
             this._conString = File.ReadAllText("../../ConString.txt");
         } 

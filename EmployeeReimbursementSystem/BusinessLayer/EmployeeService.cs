@@ -21,10 +21,12 @@ public interface IEmployeeService {
 public class EmployeeService : IEmployeeService {
 
     private readonly IEmployeeRepository _ier;
+    private IDataLogger _logger;
     private IEmployeeValidationService _ievs;
-    public EmployeeService(IEmployeeRepository ier) { 
+    public EmployeeService(IEmployeeRepository ier, IEmployeeValidationService ievs, IDataLogger logger) { 
         this._ier = ier;
-        this._ievs = new EmployeeValidationService(_ier);
+        this._ievs = ievs;
+        this._logger = logger;
     }
 
     public Employee LoginEmployee(string email, string password) => _ier.LoginEmployee(email, password);
@@ -32,7 +34,7 @@ public class EmployeeService : IEmployeeService {
     #region //Registration methods
     public Employee PostEmployee(string email, string password) { 
         if(!_ievs.ValidRegistration(email, password)) {
-            Console.WriteLine("Invalid email or password");
+            _logger.LogError("PostEmployee", "POST", $"{email}, {password}", "Invalid email and/or password");
             return null!;
         }
 
@@ -41,7 +43,7 @@ public class EmployeeService : IEmployeeService {
 
     public Employee PostEmployee(string email, string password, int roleid) {
         if(!_ievs.ValidRegistration(email, password, roleid)) {
-            Console.WriteLine("Invalid email, password, or roleId");
+            _logger.LogError("PostEmployee", "POST", $"{email}, {password}, {roleid}", "Invalid email, password, and/or roleId.");
             return null!;
         }
         
@@ -51,8 +53,8 @@ public class EmployeeService : IEmployeeService {
 
     #region // Edit Employee methods
     public Employee EditEmployee(int id, string oldPassword, string newPassword) {
-        if(!_ievs.isEmployee(id) || !_ievs.ValidPassword(newPassword) || !_ievs.isPassword(id, oldPassword)) {
-            Console.WriteLine("Invalid employeeId, invalid new password, or passwords don't match.");
+        if(!_ievs.ValidPassword(newPassword) || !_ievs.isPassword(id, oldPassword)) {
+            _logger.LogError("EditEmail", "PUT", $"{id}, {oldPassword}, {newPassword}", "Invalid password(s)");
             return null!;
         }
 
@@ -60,8 +62,8 @@ public class EmployeeService : IEmployeeService {
     }
 
     public Employee EditEmployee(int id, string email) {
-        if(!_ievs.isEmployee(id) || !_ievs.ValidEmail(email)) {
-            Console.WriteLine("Invalid employeeId, or invalid email");
+        if(!_ievs.ValidEmail(email)) {
+            _logger.LogError("EditEmail", "PUT", $"{id}, {email}", "Invalid email");
             return null!;
         }
 
@@ -69,12 +71,12 @@ public class EmployeeService : IEmployeeService {
     }
     public Employee EditEmployee(int managerId, int employeeId, int roleId) {
         if(managerId == employeeId) {
-            Console.WriteLine("Invalid target id.");
+            _logger.LogError("EditEmail", "PUT", $"{managerId}, {employeeId}, {roleId}", $"Invalid targetId");
             return null!;
         } 
 
-        if(!_ievs.isManager(managerId) || !_ievs.ValidRole(roleId) || !_ievs.isEmployee(employeeId)){
-            Console.WriteLine("Invalid managerId, roleId, or EmployeeId.");
+        if(!_ievs.isManager(managerId) || !_ievs.ValidRole(roleId)){
+            _logger.LogError("EditEmail", "PUT", $"{managerId}, {employeeId}, {roleId}", $"Invalid managerId or roleId");
             return null!;
         }
         
