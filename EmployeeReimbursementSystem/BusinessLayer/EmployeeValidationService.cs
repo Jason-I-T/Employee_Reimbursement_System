@@ -15,8 +15,8 @@ namespace BusinessLayer
         public bool ValidRole(int roleId);
         public bool ValidRegistration(string email, string pass);
         public bool ValidRegistration(string email, string pass, int roleId);
-        public bool isManager(int id);
-        public bool isPassword(int id, string oldPass);
+        public Task<bool> isManager(int id);
+        public Task<bool> isPassword(int id, string oldPass);
     }
 
     public class EmployeeValidationService : IEmployeeValidationService {
@@ -35,14 +35,14 @@ namespace BusinessLayer
         public bool ValidRole(int roleId) => (roleId >= 0 && roleId <= 1);
         #endregion
 
-        public bool isManager(int id) {
-            Employee tmp = _ier.GetEmployee(id);
+        public async Task<bool> isManager(int id) {
+            Employee tmp = await _ier.GetEmployee(id);
             if(tmp is null || tmp.roleID == 0) return false;
             else return true;
         }
 
-        public bool isPassword(int id, string oldPass) {
-            Employee tmp = _ier.GetEmployee(id);
+        public async Task<bool> isPassword(int id, string oldPass) {
+            Employee tmp = await _ier.GetEmployee(id);
             if(!((tmp.password!).Equals(oldPass))) return false;
             else return true;
         }

@@ -67,7 +67,7 @@ namespace Tests.Business
             var mer = new MockEmployeeRepository();
             var ivs = new EmployeeValidationService(mer);
 
-            bool result = ivs.isManager(id);
+            bool result = ivs.isManager(id).Result;
 
             if(Array.IndexOf(i, id) > -1) Assert.False(result);
             else Assert.True(result);
@@ -84,7 +84,7 @@ namespace Tests.Business
             var mer = new MockEmployeeRepository();
             var ivs = new EmployeeValidationService(mer);
 
-            bool result = ivs.isPassword(id, pass);
+            bool result = ivs.isPassword(id, pass).Result;
 
             if(Array.IndexOf(s, pass) > -1) Assert.False(result);
             else Assert.True(result);

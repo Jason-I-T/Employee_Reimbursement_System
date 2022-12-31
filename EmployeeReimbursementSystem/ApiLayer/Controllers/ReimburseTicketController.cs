@@ -7,6 +7,10 @@ using Microsoft.AspNetCore.Mvc;
 using ModelLayer;
 using BusinessLayer;
 
+/**
+ * TODO, Add descriptive status codes & refactor to be async
+ * - Make methods async
+ */
 namespace ApiLayer.Controllers
 {
     [ApiController]
@@ -17,28 +21,52 @@ namespace ApiLayer.Controllers
         private readonly ITicketService _its;
         public ReimburseTicketController(ITicketService its) => this._its = its;
 
-        [HttpPost("ReimbursementTicket")]
-        public ActionResult<ReimburseTicket> ReimbursementTicket(int empId, string reason, double amount, string description) {
-            ReimburseTicket ticket = _its.AddTicket(empId, reason, amount, description);
-            return Created("path/", ticket);
+        [HttpPost("Ticket")]
+        public async Task<ActionResult<ReimburseTicket>> Ticket(int employeeId, ReimburseTicket t) {
+            ReimburseTicket ticket = new ReimburseTicket();
+            try {
+                ticket = await _its.AddTicket(employeeId, t.reason!, t.amount, t.description!);
+            } catch(Exception e) {
+                return StatusCode(500, e.Message);
+            }
+            if(ticket is null) return StatusCode(400, "Unable to add a new ticket, invalid input(s).");
+            else return StatusCode(201, ticket);
         }
 
         [HttpGet("PendingTickets")]
-        public ActionResult<Queue<ReimburseTicket>> PendingTickets(int managerId) {
-            Queue<ReimburseTicket> pendingTickets = _its.GetPendingTickets(managerId);
-            return Created("path/", pendingTickets);
+        public async Task<ActionResult<Queue<ReimburseTicket>>> PendingTickets(int managerId) {
+            Queue<ReimburseTicket> tickets = new Queue<ReimburseTicket>();
+            try {
+                tickets = await _its.GetPendingTickets(managerId);
+            } catch(Exception e) {
+                return StatusCode(500, e.Message);
+            }
+            if(tickets is null) return StatusCode(400, "Unable to get pending tickets, invalid input(s).");
+            else return StatusCode(200, tickets);
         }
 
         [HttpPut("Approve")]
-        public ActionResult<ReimburseTicket> Approve(int managerId, string ticketId) {
-            ReimburseTicket approvedTicket = _its.ApproveTicket(managerId, ticketId);
-            return Created("path/", approvedTicket);
+        public async Task<ActionResult<ReimburseTicket>> Approve(int managerId, string ticketId) {
+            ReimburseTicket ticket = new ReimburseTicket();
+            try {
+                ticket = await _its.ApproveTicket(managerId, ticketId);
+            } catch(Exception e) {
+                return StatusCode(500, e.Message);
+            }
+            if(ticket is null) return StatusCode(400, "Unable to approve ticket, invalid input(s).");
+            else return StatusCode(200, ticket);
         }
 
         [HttpPut("Deny")]
-        public ActionResult<ReimburseTicket> Deny(int managerId, string ticketId) {
-            ReimburseTicket deniedTicket = _its.DenyTicket(managerId, ticketId);
-            return Created("path/", deniedTicket);
+        public async Task<ActionResult<ReimburseTicket>> Deny(int managerId, string ticketId) {
+            ReimburseTicket ticket = new ReimburseTicket();
+            try {
+                ticket = await _its.DenyTicket(managerId, ticketId);
+            } catch(Exception e) {
+                return StatusCode(500, e.Message);
+            }
+            if(ticket is null) return StatusCode(400, "Unable to deny ticket, invalid input(s).");
+            else return StatusCode(200, ticket);
         }
     }
 }

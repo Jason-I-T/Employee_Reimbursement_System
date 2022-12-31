@@ -9,12 +9,12 @@ using ModelLayer;
 namespace RepositoryLayer
 {
     public interface IEmployeeRepository {
-        Employee UpdateEmployee(int id, int roleId);
-        Employee UpdateEmployee(int id, string info);
-        Employee PostEmployee(string email, string password, int roleId);
-        Employee GetEmployee(string email);
-        Employee GetEmployee(int id);
-        Employee LoginEmployee(string email, string password);
+        Task<Employee> UpdateEmployee(int id, int roleId);
+        Task<Employee> UpdateEmployee(int id, string info);
+        Task<Employee> PostEmployee(string email, string password, int roleId);
+        Task<Employee> GetEmployee(string email);
+        Task<Employee> GetEmployee(int id);
+        Task<Employee> LoginEmployee(string email, string password);
     }
 
     public class EmployeeRepository : IEmployeeRepository {
@@ -27,18 +27,18 @@ namespace RepositoryLayer
         } 
 
         // Update an employee's role, email, or password
-        public Employee UpdateEmployee(int id, int roleId) {
+        public async Task<Employee> UpdateEmployee(int id, int roleId) {
             using(SqlConnection connection = new SqlConnection(_conString)) {
                 string updateEmployeeQuery = "UPDATE Employee SET RoleId = @RoleId WHERE EmployeeId = @Id;";
                 SqlCommand command = new SqlCommand(updateEmployeeQuery, connection);
                 command.Parameters.AddWithValue("@RoleId", roleId);
                 command.Parameters.AddWithValue("@Id", id); 
 
-                return ExecuteUpdate(connection, command, id, roleId);
+                return await ExecuteUpdate(connection, command, id, roleId);
             } 
         }
 
-        public Employee UpdateEmployee(int id, string info) {
+        public async Task<Employee> UpdateEmployee(int id, string info) {
             string regex = @"^([a-zA-Z0-9_\-\.]+)@([a-zA-Z0-9_\-\.]+)\.([a-zA-Z]{2,5})$";
             using(SqlConnection connection = new SqlConnection(_conString)) {
                 string updateEmployeeQuery;
@@ -53,12 +53,12 @@ namespace RepositoryLayer
                 command.Parameters.AddWithValue("@info", info); 
                 command.Parameters.AddWithValue("@Id", id);
 
-                return ExecuteUpdate(connection, command, id, info);
+                return await ExecuteUpdate(connection, command, id, info);
             }
         }
 
         // Add an employee to the system
-        public Employee PostEmployee(string email, string password, int roleId) {
+        public async Task<Employee> PostEmployee(string email, string password, int roleId) {
             using(SqlConnection connection = new SqlConnection(_conString)) {
                 string insertEmployeeQuery = "INSERT INTO Employee (Email, Password, RoleId) VALUES (@email, @password, @RoleId);";
                 SqlCommand command = new SqlCommand(insertEmployeeQuery, connection);
@@ -66,11 +66,11 @@ namespace RepositoryLayer
                 command.Parameters.AddWithValue("@password", password);
                 command.Parameters.AddWithValue("@RoleId", roleId);
                 try {
-                    connection.Open();
-                    int rowsAffected = command.ExecuteNonQuery();
+                    await connection.OpenAsync();
+                    int rowsAffected = await command.ExecuteNonQueryAsync();
                     if(rowsAffected == 1) {
                         _logger.LogSuccess("PostEmployee", "POST", $"{email}, {password}, {roleId}");
-                        return GetEmployee(email);
+                        return await GetEmployee(email);
                     } else {
                         _logger.LogError("PostEmployee", "POST", $"{email}, {password}, {roleId}", "Insertion Failure");
                         return null!;
@@ -83,43 +83,49 @@ namespace RepositoryLayer
         }
 
         // Get Methods... retrieve unique employee by email, id, or email & password
-        public Employee GetEmployee(string email) {
+        public async Task<Employee> GetEmployee(string email) {
             using(SqlConnection connection = new SqlConnection(_conString)) {
                 string queryEmployeeByEmail = "SELECT * FROM Employee WHERE Email = @email";
                 SqlCommand command = new SqlCommand(queryEmployeeByEmail, connection);
                 command.Parameters.AddWithValue("@Email", email);
-                return ExecuteGet(connection, command, email);
+                return await ExecuteGet(connection, command, email);
             }
         }
 
-        public Employee GetEmployee(int id) {
+        public async Task<Employee> GetEmployee(int id) {
             using(SqlConnection connection = new SqlConnection(_conString)) {
                 string queryEmployeeById = "SELECT * FROM Employee WHERE EmployeeId = @id";
                 SqlCommand command = new SqlCommand(queryEmployeeById, connection);
                 command.Parameters.AddWithValue("@id", id);
-                return ExecuteGet(connection, command, id);
+                return await ExecuteGet(connection, command, id);
             }
         }
 
-        public Employee LoginEmployee(string email, string password) {
+        public async Task<Employee> LoginEmployee(string email, string password) {
             using(SqlConnection connection = new SqlConnection(_conString)) {
                 string queryEmployeeByEmail = "SELECT * FROM Employee WHERE Email = @email AND Password = @password";
                 SqlCommand command = new SqlCommand(queryEmployeeByEmail, connection);
                 command.Parameters.AddWithValue("@Email", email);
                 command.Parameters.AddWithValue("@Password", password);
                 try {
-                    connection.Open();
+                    await connection.OpenAsync();
                     
-                    using(SqlDataReader reader = command.ExecuteReader()) {
+                    using(SqlDataReader reader = await command.ExecuteReaderAsync()) {
                         if(!reader.HasRows) {
                             
                             _logger.LogError("LoginEmployee", "GET", $"{email}, {password}", "Login Failure");
                             return null!;
                         }
                         else {
-                            reader.Read();
+                            await reader.ReadAsync();
                             _logger.LogSuccess("LoginEmployee", "GET", $"{email}, {password}");
-                            return GetEmployee(email);
+                            //return await GetEmployee(email);
+                            return new Employee(
+                                (int)reader[0], 
+                                (string)reader[1], 
+                                (string)reader[2], 
+                                (int)reader[3]
+                            );
                         }
                     }
                 } catch(Exception e) {
@@ -130,14 +136,14 @@ namespace RepositoryLayer
         }
         
         // Helper methods
-        private Employee ExecuteUpdate(SqlConnection con, SqlCommand comm, int id, object logInfo) {
+        private async Task<Employee> ExecuteUpdate(SqlConnection con, SqlCommand comm, int id, object logInfo) {
             // Steps for updating an employee
             try { 
-                con.Open();
-                int rowsAffected = comm.ExecuteNonQuery();
+                await con.OpenAsync();
+                int rowsAffected = await comm.ExecuteNonQueryAsync();
                 if(rowsAffected == 1) {
                     _logger.LogSuccess("UpdateEmployee", "PUT", logInfo);
-                    return GetEmployee(id);
+                    return await GetEmployee(id);
                 } else {    
                     _logger.LogError("UpdateEmployee", "PUT", logInfo, "Employee Update Error");
                     return null!;
@@ -148,18 +154,18 @@ namespace RepositoryLayer
             }
         }
 
-        private Employee ExecuteGet(SqlConnection con, SqlCommand comm, object logInfo) {
+        private async Task<Employee> ExecuteGet(SqlConnection con, SqlCommand comm, object logInfo) {
             // Steps for getting an employee
             try {
-                con.Open();
+                await con.OpenAsync();
                 
-                using(SqlDataReader reader = comm.ExecuteReader()) {
+                using(SqlDataReader reader = await comm.ExecuteReaderAsync()) {
                     if(!reader.HasRows) {
                         _logger.LogError("GetEmployee", "GET", logInfo, "Could not find employee matching the args.");
                         return null!;
                     } 
                     else {
-                        reader.Read();
+                        await reader.ReadAsync();
                         _logger.LogSuccess("GetEmployee", "GET", logInfo);
                         return new Employee(
                             (int)reader[0], 

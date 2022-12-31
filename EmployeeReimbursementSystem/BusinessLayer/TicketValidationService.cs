@@ -26,7 +26,7 @@ public class TicketValidationService : ITicketValidationService {
     #endregion
 
     public bool ValidStatusChange(int managerId, string ticketId) {
-        ReimburseTicket tmp = _itr.GetTicket(ticketId);
+        ReimburseTicket tmp = _itr.GetTicket(ticketId).Result;
         if(tmp.employeeID == managerId || tmp is null || tmp.status != 0) return false;
         return true;
     }

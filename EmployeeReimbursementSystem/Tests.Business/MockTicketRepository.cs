@@ -44,36 +44,36 @@ namespace Tests.Business
             ticketDb.Add(t3);
         }
 
-        public Queue<ReimburseTicket> GetPending(int managerId)
+        public Task<Queue<ReimburseTicket>> GetPending(int managerId)
         {
             throw new NotImplementedException();
         }
 
-        public ReimburseTicket GetTicket(string ticketId)
+        public Task<ReimburseTicket> GetTicket(string ticketId)
         {
             foreach(ReimburseTicket t in ticketDb) {
                 if(t.guid!.Equals(ticketId))
-                    return t;
+                    return Task<ReimburseTicket>.Factory.StartNew(()=>{return t;});
             }
             return null!;
         }
 
-        public List<ReimburseTicket> GetTickets(int employeeId)
+        public Task<List<ReimburseTicket>> GetTickets(int employeeId)
         {
             throw new NotImplementedException();
         }
 
-        public List<ReimburseTicket> GetTickets(int employeeId, int statusId)
+        public Task<List<ReimburseTicket>> GetTickets(int employeeId, int statusId)
         {
             throw new NotImplementedException();
         }
 
-        public ReimburseTicket PostTicket(string guid, string r, double a, string d, DateTime t, int eId)
+        public Task<ReimburseTicket> PostTicket(string guid, string r, double a, string d, DateTime t, int eId)
         {
             throw new NotImplementedException();
         }
 
-        public ReimburseTicket UpdateTicket(string ticketId, int statusId)
+        public Task<ReimburseTicket> UpdateTicket(string ticketId, int statusId)
         {
             throw new NotImplementedException();
         }
