@@ -58,22 +58,6 @@ namespace Tests.Business
         }
 
         [Theory]
-        [InlineData(1)]
-        [InlineData(2)]
-        [InlineData(4)]
-        [InlineData(5)]
-        public void IsEmployeeTest(int id) {
-            int[] i = {4, 5};
-            var mer = new MockEmployeeRepository();
-            var ivs = new EmployeeValidationService(mer);
-
-            bool result = ivs.isEmployee(id);
-
-            if(Array.IndexOf(i, id) > -1) Assert.False(result);
-            else Assert.True(result);
-        }
-
-        [Theory]
         [InlineData(3)]
         [InlineData(1)]
         [InlineData(2)]

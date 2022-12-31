@@ -15,7 +15,6 @@ namespace BusinessLayer
         public bool ValidRole(int roleId);
         public bool ValidRegistration(string email, string pass);
         public bool ValidRegistration(string email, string pass, int roleId);
-        //public bool isEmployee(int id);
         public bool isManager(int id);
         public bool isPassword(int id, string oldPass);
     }
@@ -35,11 +34,6 @@ namespace BusinessLayer
         public bool ValidPassword(string pass) => Regex.Match(pass, @"^([0-9a-zA-Z]{6,})$").Success;
         public bool ValidRole(int roleId) => (roleId >= 0 && roleId <= 1);
         #endregion
-
-        public bool isEmployee(int id) {    
-            if(_ier.GetEmployee(id) is null) return false;
-            else return true;
-        }
 
         public bool isManager(int id) {
             Employee tmp = _ier.GetEmployee(id);
