@@ -8,11 +8,6 @@ using ModelLayer;
 using BusinessLayer;
 
 namespace ApiLayer.Controllers;
-    
-/**
- * TODO, Add descriptive status codes & refactor to be async
- * - Make methods async
- */
 
 [ApiController]
 [Route("api/[controller]")]
