@@ -9,12 +9,12 @@ using ModelLayer;
 
 namespace RepositoryLayer;
 public interface ITicketRepository {
-    ReimburseTicket PostTicket(string guid, string r, double a, string d, DateTime t, int eId);
-    ReimburseTicket GetTicket(string ticketId);
-    ReimburseTicket UpdateTicket(string ticketId, int statusId);
-    List<ReimburseTicket> GetTickets(int employeeId);
-    List<ReimburseTicket> GetTickets(int employeeId, int statusId);
-    Queue<ReimburseTicket> GetPending(int managerId);
+    Task<ReimburseTicket> PostTicket(string guid, string r, double a, string d, DateTime t, int eId);
+    Task<ReimburseTicket> GetTicket(string ticketId);
+    Task<ReimburseTicket> UpdateTicket(string ticketId, int statusId);
+    Task<List<ReimburseTicket>> GetTickets(int employeeId);
+    Task<List<ReimburseTicket>> GetTickets(int employeeId, int statusId);
+    Task<Queue<ReimburseTicket>> GetPending(int managerId);
 }
 
 public class TicketRepository : ITicketRepository {
@@ -26,18 +26,18 @@ public class TicketRepository : ITicketRepository {
         this._conString = File.ReadAllText("../../ConString.txt");
     }
     
-    public ReimburseTicket UpdateTicket(string ticketId, int statusId) {
+    public async Task<ReimburseTicket> UpdateTicket(string ticketId, int statusId) {
         using(SqlConnection connection = new SqlConnection(_conString)) {
             string updateTicketQuery = "UPDATE Ticket SET StatusId = @statusId WHERE TicketId = @ticketId";
             SqlCommand command = new SqlCommand(updateTicketQuery, connection);
             command.Parameters.AddWithValue("@statusId", statusId);
             command.Parameters.AddWithValue("@ticketId", ticketId);
             try {
-                connection.Open();
-                int rowsAffected = command.ExecuteNonQuery();
+                await connection.OpenAsync();
+                int rowsAffected = await command.ExecuteNonQueryAsync();
                 if(rowsAffected == 1) {
                     _logger.LogSuccess("UpdateTicket", "PUT", $"{ticketId}, {statusId}");
-                    return GetTicket(ticketId);
+                    return await GetTicket(ticketId);
                 } else {
                     _logger.LogError("UpdateTicket", "PUT", $"{ticketId}, {statusId}", "Upate failure");
                     return null!;
@@ -49,7 +49,7 @@ public class TicketRepository : ITicketRepository {
         }
     }
 
-    public ReimburseTicket PostTicket(string guid, string r, double a, string d, DateTime t, int eId) {
+    public async Task<ReimburseTicket> PostTicket(string guid, string r, double a, string d, DateTime t, int eId) {
         using(SqlConnection connection = new SqlConnection(_conString)) {
             string insertTicketQuery = "INSERT INTO Ticket (TicketId, Reason, Amount, Description, StatusId, RequestDate, EmployeeId) VALUES (@guid, @r, @a, @d, 0, @t, @eId);";
             SqlCommand command = new SqlCommand(insertTicketQuery, connection);
@@ -61,11 +61,11 @@ public class TicketRepository : ITicketRepository {
             command.Parameters.AddWithValue("@eId", eId);
 
             try {
-                connection.Open();
-                int rowsAffected = command.ExecuteNonQuery();
+                await connection.OpenAsync();
+                int rowsAffected = await command.ExecuteNonQueryAsync();
                 if(rowsAffected == 1) {
                     _logger.LogSuccess("PostTicket", "POST", guid);
-                    return GetTicket(guid);
+                    return await GetTicket(guid);
                 } else {
                     _logger.LogError("PostTicket", "POST", guid, "Insertion failure.");
                     return null!;
@@ -77,21 +77,21 @@ public class TicketRepository : ITicketRepository {
         }
     }
 
-    public ReimburseTicket GetTicket(string ticketId) {
+    public async Task<ReimburseTicket> GetTicket(string ticketId) {
         using(SqlConnection connection = new SqlConnection(_conString)) {
             string queryTicketById = "SELECT * FROM Ticket WHERE TicketId = @ticketId;";
             SqlCommand command = new SqlCommand(queryTicketById, connection);
             command.Parameters.AddWithValue("@ticketId", ticketId);
             try {
-                connection.Open();
+                await connection.OpenAsync();
 
-                using(SqlDataReader reader = command.ExecuteReader()) {
+                using(SqlDataReader reader = await command.ExecuteReaderAsync()) {
                     if(!reader.HasRows) {
                         _logger.LogError("GetTicket", "GET", ticketId, "No result for given input");
                         return null!;
                     } 
                     else {
-                        reader.Read();
+                        await reader.ReadAsync();
                         _logger.LogSuccess("GetTicket", "GET", ticketId);
                         return new ReimburseTicket(
                             (string) reader[0],
@@ -111,46 +111,46 @@ public class TicketRepository : ITicketRepository {
         }
     }
 
-    public List<ReimburseTicket> GetTickets(int employeeId) {
+    public async Task<List<ReimburseTicket>> GetTickets(int employeeId) {
         List<ReimburseTicket> employeeTickets = new List<ReimburseTicket>();
         using(SqlConnection connection = new SqlConnection(_conString)) {
             string queryAllEmployeeTickets = "SELECT * FROM Ticket WHERE EmployeeId = @employeeId ORDER BY RequestDate;";
             SqlCommand command = new SqlCommand(queryAllEmployeeTickets, connection);
             command.Parameters.AddWithValue("@employeeId", employeeId);
-            return ExecuteGetTickets(connection, command, employeeId);
+            return await ExecuteGetTickets(connection, command, employeeId);
         }
     }
 
-    public List<ReimburseTicket> GetTickets(int employeeId, int statusId) {
+    public async Task<List<ReimburseTicket>> GetTickets(int employeeId, int statusId) {
         List<ReimburseTicket> employeeTickets = new List<ReimburseTicket>();
         using(SqlConnection connection = new SqlConnection(_conString)) {
             string queryAllEmployeeTickets = "SELECT * FROM Ticket WHERE EmployeeId = @employeeId AND StatusId = @statusId ORDER BY RequestDate;";
             SqlCommand command = new SqlCommand(queryAllEmployeeTickets, connection);
             command.Parameters.AddWithValue("@employeeId", employeeId);
             command.Parameters.AddWithValue("@statusId", statusId);
-            return ExecuteGetTickets(connection, command, $"{employeeId}, {statusId}");
+            return await ExecuteGetTickets(connection, command, $"{employeeId}, {statusId}");
         }
     }
 
-    public Queue<ReimburseTicket> GetPending(int managerId) {
+    public async Task<Queue<ReimburseTicket>> GetPending(int managerId) {
         using(SqlConnection connection = new SqlConnection(_conString)) {
             string queryAllEmployeeTickets = "SELECT * FROM Ticket WHERE StatusId = @statusId ORDER BY RequestDate;";
             SqlCommand command = new SqlCommand(queryAllEmployeeTickets, connection);
             command.Parameters.AddWithValue("@statusId", 0);
-            return new Queue<ReimburseTicket>(ExecuteGetTickets(connection, command, managerId));
+            return new Queue<ReimburseTicket>(await ExecuteGetTickets(connection, command, managerId));
         }
     }
 
-    private List<ReimburseTicket> ExecuteGetTickets(SqlConnection con, SqlCommand comm, object logInfo) {
+    private async Task<List<ReimburseTicket>> ExecuteGetTickets(SqlConnection con, SqlCommand comm, object logInfo) {
         List<ReimburseTicket> employeeTickets = new List<ReimburseTicket>();
         try {
-            con.Open();
-            using(SqlDataReader reader = comm.ExecuteReader()) {
+            await con.OpenAsync();
+            using(SqlDataReader reader = await comm.ExecuteReaderAsync()) {
                 if(!reader.HasRows) {
                     _logger.LogError("GetTickets", "GET", logInfo, "No results matching the input.");
                     return null!;
                 } 
-                while(reader.Read()) {
+                while(await reader.ReadAsync()) {
                     ReimburseTicket newTicket = new ReimburseTicket(
                         (string) reader[0],
                         (string) reader[1],

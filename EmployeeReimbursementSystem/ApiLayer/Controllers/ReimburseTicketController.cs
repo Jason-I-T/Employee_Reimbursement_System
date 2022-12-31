@@ -22,10 +22,10 @@ namespace ApiLayer.Controllers
         public ReimburseTicketController(ITicketService its) => this._its = its;
 
         [HttpPost("Ticket")]
-        public ActionResult<ReimburseTicket> Ticket(int employeeId, ReimburseTicket t) {
+        public async Task<ActionResult<ReimburseTicket>> Ticket(int employeeId, ReimburseTicket t) {
             ReimburseTicket ticket = new ReimburseTicket();
             try {
-                ticket = _its.AddTicket(employeeId, t.reason!, t.amount, t.description!);
+                ticket = await _its.AddTicket(employeeId, t.reason!, t.amount, t.description!);
             } catch(Exception e) {
                 return StatusCode(500, e.Message);
             }
@@ -34,10 +34,10 @@ namespace ApiLayer.Controllers
         }
 
         [HttpGet("PendingTickets")]
-        public ActionResult<Queue<ReimburseTicket>> PendingTickets(int managerId) {
+        public async Task<ActionResult<Queue<ReimburseTicket>>> PendingTickets(int managerId) {
             Queue<ReimburseTicket> tickets = new Queue<ReimburseTicket>();
             try {
-                tickets = _its.GetPendingTickets(managerId);
+                tickets = await _its.GetPendingTickets(managerId);
             } catch(Exception e) {
                 return StatusCode(500, e.Message);
             }
@@ -46,10 +46,10 @@ namespace ApiLayer.Controllers
         }
 
         [HttpPut("Approve")]
-        public ActionResult<ReimburseTicket> Approve(int managerId, string ticketId) {
+        public async Task<ActionResult<ReimburseTicket>> Approve(int managerId, string ticketId) {
             ReimburseTicket ticket = new ReimburseTicket();
             try {
-                ticket = _its.ApproveTicket(managerId, ticketId);
+                ticket = await _its.ApproveTicket(managerId, ticketId);
             } catch(Exception e) {
                 return StatusCode(500, e.Message);
             }
@@ -58,10 +58,10 @@ namespace ApiLayer.Controllers
         }
 
         [HttpPut("Deny")]
-        public ActionResult<ReimburseTicket> Deny(int managerId, string ticketId) {
+        public async Task<ActionResult<ReimburseTicket>> Deny(int managerId, string ticketId) {
             ReimburseTicket ticket = new ReimburseTicket();
             try {
-                ticket = _its.DenyTicket(managerId, ticketId);
+                ticket = await _its.DenyTicket(managerId, ticketId);
             } catch(Exception e) {
                 return StatusCode(500, e.Message);
             }

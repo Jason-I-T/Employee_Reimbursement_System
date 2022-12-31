@@ -26,10 +26,10 @@ public class EmployeeController : ControllerBase {
     }
         
     [HttpPost("Register")]
-    public ActionResult<Employee> PostEmployee(Employee e) {
+    public async Task<ActionResult<Employee>> PostEmployee(Employee e) {
         Employee employee = new Employee();
         try {
-            employee = _ies.PostEmployee(e.email!, e.password!, e.roleID);
+            employee = await _ies.PostEmployee(e.email!, e.password!, e.roleID);
         } catch(Exception ex) {
             return StatusCode(500, ex.Message);
         }
@@ -38,10 +38,10 @@ public class EmployeeController : ControllerBase {
     }
 
     [HttpGet("LoginEmployee")]
-    public ActionResult<Employee> LoginEmployee(Employee e) {
+    public async Task<ActionResult<Employee>> LoginEmployee(Employee e) {
         Employee employee = new Employee();
         try {
-            employee = _ies.LoginEmployee(e.email!, e.password!);
+            employee = await _ies.LoginEmployee(e.email!, e.password!);
         } catch(Exception ex) {
             return StatusCode(500, ex.Message);
         }
@@ -50,10 +50,10 @@ public class EmployeeController : ControllerBase {
     }
 
     [HttpPut("ChangePassword")]
-    public ActionResult<Employee> EditEmployee(Employee e, string oldPassword) {
+    public async Task<ActionResult<Employee>> EditEmployee(Employee e, string oldPassword) {
         Employee employee = new Employee();
         try {
-            employee = _ies.EditEmployee(e.id, oldPassword, e.password!);
+            employee = await _ies.EditEmployee(e.id, oldPassword, e.password!);
         } catch(Exception ex) {
             return StatusCode(500, ex.Message);
         }
@@ -62,10 +62,10 @@ public class EmployeeController : ControllerBase {
     }
 
     [HttpPut("ChangeEmail")]
-    public ActionResult<Employee> EditEmployee(Employee e) {
+    public async Task<ActionResult<Employee>> EditEmployee(Employee e) {
         Employee employee = new Employee();
         try {
-            employee = _ies.EditEmployee(e.id, e.email!);
+            employee = await _ies.EditEmployee(e.id, e.email!);
         } catch(Exception ex) {
             return StatusCode(500, ex.Message);
         }
@@ -74,10 +74,10 @@ public class EmployeeController : ControllerBase {
     }
 
     [HttpPut("ChangeRole")]
-    public ActionResult<Employee> EditEmployee(int managerId, int targetId, int newRoleId) {
+    public async Task<ActionResult<Employee>> EditEmployee(int managerId, int targetId, int newRoleId) {
         Employee employee = new Employee();
         try {
-            employee = _ies.EditEmployee(managerId, targetId, newRoleId);
+            employee = await _ies.EditEmployee(managerId, targetId, newRoleId);
         } catch(Exception ex) {
             return StatusCode(500, ex.Message);
         }
@@ -86,10 +86,10 @@ public class EmployeeController : ControllerBase {
     }
 
     [HttpGet("EmployeeTickets")]
-    public ActionResult<List<ReimburseTicket>> EmployeeTickets(int employeeId) {
+    public async Task<ActionResult<List<ReimburseTicket>>> EmployeeTickets(int employeeId) {
         List<ReimburseTicket> tickets = new List<ReimburseTicket>();
         try {
-            tickets = _its.GetEmployeeTickets(employeeId);
+            tickets = await _its.GetEmployeeTickets(employeeId);
         } catch(Exception ex) {
             return StatusCode(500, ex.Message);
         }
@@ -98,10 +98,10 @@ public class EmployeeController : ControllerBase {
     }
 
     [HttpGet("EmployeeTicketsByStatus")]
-    public ActionResult<List<ReimburseTicket>> EmployeeTickets(int employeeId, int status) {
+    public async Task<ActionResult<List<ReimburseTicket>>> EmployeeTickets(int employeeId, int status) {
         List<ReimburseTicket> tickets = new List<ReimburseTicket>();
         try {
-            tickets = _its.GetEmployeeTickets(employeeId, status);
+            tickets = await _its.GetEmployeeTickets(employeeId, status);
         } catch(Exception ex) {
             return StatusCode(500, ex.Message);
         }

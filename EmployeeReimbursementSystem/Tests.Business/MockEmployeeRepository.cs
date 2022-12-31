@@ -20,41 +20,41 @@ namespace Tests.Business
             mockDb.Add(e3);
         }
 
-        public Employee GetEmployee(string email)
+        public Task<Employee> GetEmployee(string email)
         {
             throw new NotImplementedException();
         }
 
-        public Employee GetEmployee(int id)
+        public Task<Employee> GetEmployee(int id)
         {
             foreach(Employee e in this.mockDb) {
                 if(e.id == id)
-                    return e;
+                    return Task<Employee>.Factory.StartNew(() => {return e;});
             }
             return null!;
         }
 
-        public Employee LoginEmployee(string email, string password)
+        public Task<Employee> LoginEmployee(string email, string password)
         {
             throw new NotImplementedException();
         }
 
-        public Employee PostEmployee(string email, string password)
+        public Task<Employee> PostEmployee(string email, string password)
         {
             throw new NotImplementedException();
         }
 
-        public Employee PostEmployee(string email, string password, int roleId)
+        public Task<Employee> PostEmployee(string email, string password, int roleId)
         {
             throw new NotImplementedException();
         }
 
-        public Employee UpdateEmployee(int id, int roleId)
+        public Task<Employee> UpdateEmployee(int id, int roleId)
         {
             throw new NotImplementedException();
         }
 
-        public Employee UpdateEmployee(int id, string info)
+        public Task<Employee> UpdateEmployee(int id, string info)
         {
             throw new NotImplementedException();
         }
