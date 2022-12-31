@@ -34,7 +34,7 @@ namespace RepositoryLayer
                 command.Parameters.AddWithValue("@RoleId", roleId);
                 command.Parameters.AddWithValue("@Id", id); 
 
-                return ExecuteUpdate(connection, command, id, "UpdateRole");
+                return ExecuteUpdate(connection, command, id, roleId);
             } 
         }
 
@@ -69,14 +69,14 @@ namespace RepositoryLayer
                     connection.Open();
                     int rowsAffected = command.ExecuteNonQuery();
                     if(rowsAffected == 1) {
-                        _logger.LogSuccess("PostEmployee", "POST", new object[]{email, password, roleId});
+                        _logger.LogSuccess("PostEmployee", "POST", $"{email}, {password}, {roleId}");
                         return GetEmployee(email);
                     } else {
-                        _logger.LogError("PostEmployee", "POST", new object[]{email, password, roleId}, "Insertion Failure");
+                        _logger.LogError("PostEmployee", "POST", $"{email}, {password}, {roleId}", "Insertion Failure");
                         return null!;
                     }
                 } catch (Exception e) {
-                    _logger.LogError("PostEmployee", "POST", new object[]{email, password, roleId}, e.Message);
+                    _logger.LogError("PostEmployee", "POST", $"{email}, {password}, {roleId}", e.Message);
                     return null!;
                 }
             }
@@ -113,17 +113,17 @@ namespace RepositoryLayer
                     using(SqlDataReader reader = command.ExecuteReader()) {
                         if(!reader.HasRows) {
                             
-                            _logger.LogError("LoginEmployee", "GET", new object[]{email, password}, "Login Failure");
+                            _logger.LogError("LoginEmployee", "GET", $"{email}, {password}", "Login Failure");
                             return null!;
                         }
                         else {
                             reader.Read();
-                            _logger.LogSuccess("LoginEmployee", "GET", new object[]{email, password});
+                            _logger.LogSuccess("LoginEmployee", "GET", $"{email}, {password}");
                             return GetEmployee(email);
                         }
                     }
                 } catch(Exception e) {
-                    _logger.LogError("LoginEmployee", "GET", new object[]{email, password}, e.Message);
+                    _logger.LogError("LoginEmployee", "GET", $"{email}, {password}", e.Message);
                     return null!;
                 }
             }
