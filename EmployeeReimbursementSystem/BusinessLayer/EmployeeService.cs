@@ -9,10 +9,8 @@ using RepositoryLayer;
 namespace BusinessLayer;
 
 public interface IEmployeeService {
-    public Employee PostEmployee(string email, string password);
     public Employee PostEmployee(string email, string password, int roleid);
     public Employee LoginEmployee(string email, string password);
-    
     public Employee EditEmployee(int id, string oldPassword, string newPassword);
     public Employee EditEmployee(int id, string email);
     public Employee EditEmployee(int managerId, int employeeId, int roleId);
@@ -31,16 +29,6 @@ public class EmployeeService : IEmployeeService {
 
     public Employee LoginEmployee(string email, string password) => _ier.LoginEmployee(email, password);
 
-    #region //Registration methods
-    public Employee PostEmployee(string email, string password) { 
-        if(!_ievs.ValidRegistration(email, password)) {
-            _logger.LogError("PostEmployee", "POST", $"{email}, {password}", "Invalid email and/or password");
-            return null!;
-        }
-
-        return _ier.PostEmployee(email, password, 0);
-    }
-
     public Employee PostEmployee(string email, string password, int roleid) {
         if(!_ievs.ValidRegistration(email, password, roleid)) {
             _logger.LogError("PostEmployee", "POST", $"{email}, {password}, {roleid}", "Invalid email, password, and/or roleId.");
@@ -49,7 +37,6 @@ public class EmployeeService : IEmployeeService {
         
         return _ier.PostEmployee(email, password, roleid);
     }
-    #endregion
 
     #region // Edit Employee methods
     public Employee EditEmployee(int id, string oldPassword, string newPassword) {
