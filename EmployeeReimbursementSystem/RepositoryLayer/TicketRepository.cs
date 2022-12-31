@@ -7,12 +7,6 @@ using Microsoft.Data.SqlClient;
 
 using ModelLayer;
 
-/**
- * TODO, Reduce the number of repeated lines of code and increase readability
- * - Identify where code keeps getting reused, seperate functionality into 
- *   seperate methods.
- * - Add in loggers.
- */
 namespace RepositoryLayer;
 public interface ITicketRepository {
     ReimburseTicket PostTicket(string guid, string r, double a, string d, DateTime t, int eId);
@@ -32,7 +26,6 @@ public class TicketRepository : ITicketRepository {
         this._conString = File.ReadAllText("../../ConString.txt");
     }
     
-    
     public ReimburseTicket UpdateTicket(string ticketId, int statusId) {
         using(SqlConnection connection = new SqlConnection(_conString)) {
             string updateTicketQuery = "UPDATE Ticket SET StatusId = @statusId WHERE TicketId = @ticketId";
@@ -43,15 +36,14 @@ public class TicketRepository : ITicketRepository {
                 connection.Open();
                 int rowsAffected = command.ExecuteNonQuery();
                 if(rowsAffected == 1) {
-                    // _logger.LogTicketPut(true, ticketId);
+                    _logger.LogSuccess("UpdateTicket", "PUT", $"{ticketId}, {statusId}");
                     return GetTicket(ticketId);
                 } else {
-                    // _logger.LogTicketPut(false, ticketId);
+                    _logger.LogError("UpdateTicket", "PUT", $"{ticketId}, {statusId}", "Upate failure");
                     return null!;
                 }
             } catch(Exception e) {
-                // _logger.LogTicketPut(false, ticketId);
-                //Console.WriteLine(e.Message);
+                _logger.LogError("UpdateTicket", "PUT", $"{ticketId}, {statusId}", e.Message);
                 return null!;
             }
         }
@@ -72,15 +64,14 @@ public class TicketRepository : ITicketRepository {
                 connection.Open();
                 int rowsAffected = command.ExecuteNonQuery();
                 if(rowsAffected == 1) {
-                    // _logger.LogTicketPost(true, guid);
+                    _logger.LogSuccess("PostTicket", "POST", guid);
                     return GetTicket(guid);
                 } else {
-                    // _logger.LogTicketPost(false, guid);
+                    _logger.LogError("PostTicket", "POST", guid, "Insertion failure.");
                     return null!;
                 }
             } catch(Exception e) {
-                // _logger.LogTicketPost(false, guid);
-                //Console.WriteLine(e.Message);
+                _logger.LogError("PostTicket", "POST", guid, e.Message);
                 return null!;
             }
         }
@@ -96,12 +87,12 @@ public class TicketRepository : ITicketRepository {
 
                 using(SqlDataReader reader = command.ExecuteReader()) {
                     if(!reader.HasRows) {
-                        // _logger.LogTicketGet(false, ticketId);
+                        _logger.LogError("GetTicket", "GET", ticketId, "No result for given input");
                         return null!;
                     } 
                     else {
                         reader.Read();
-                        // _logger.LogTicketGet(true, ticketId);
+                        _logger.LogSuccess("GetTicket", "GET", ticketId);
                         return new ReimburseTicket(
                             (string) reader[0],
                             (string) reader[1],
@@ -114,8 +105,7 @@ public class TicketRepository : ITicketRepository {
                     }
                 }
             } catch(Exception e) {
-                // _logger.LogTicketGet(false, ticketId);
-                //Console.WriteLine(e.Message);
+                _logger.LogError("GetTicket", "GET", ticketId, e.Message);
                 return null!;
             }
         }
@@ -157,7 +147,7 @@ public class TicketRepository : ITicketRepository {
             con.Open();
             using(SqlDataReader reader = comm.ExecuteReader()) {
                 if(!reader.HasRows) {
-                    // _logger.LogTicketGet(false, employeeId);
+                    _logger.LogError("GetTickets", "GET", logInfo, "No results matching the input.");
                     return null!;
                 } 
                 while(reader.Read()) {
@@ -172,12 +162,11 @@ public class TicketRepository : ITicketRepository {
                     );
                     employeeTickets.Add(newTicket);
                 }
-                // _logger.LogTicketGet(true, employeeId);
+                _logger.LogSuccess("GetTickets", "GET", logInfo);
                 return employeeTickets;
             }
         } catch(Exception e) {
-            // _logger.LogTicketGet(false, employeeId);
-            //Console.WriteLine(e.Message);
+            _logger.LogError("GetTickets", "GET", logInfo, e.Message);
             return null!;
         }    
     }
