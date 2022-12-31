@@ -9,6 +9,10 @@ using BusinessLayer;
 
 namespace ApiLayer.Controllers;
     
+/**
+ * TODO, Add descriptive status codes & refactor to be async
+ * - Make methods async
+ */
 
 [ApiController]
 [Route("api/[controller]")]
@@ -23,49 +27,97 @@ public class EmployeeController : ControllerBase {
         
     [HttpPost("RegisterEmployee")]
     public ActionResult<Employee> PostEmployee(string email, string password) {
-        Employee newEmployee = _ies.PostEmployee(email, password);
-        return Created("path/to/db", newEmployee);
+        Employee employee = new Employee();
+        try {
+            employee = _ies.PostEmployee(email, password);
+        } catch(Exception e) {
+            return StatusCode(500, e.Message);
+        }
+        if(employee is null) return StatusCode(400, "Unable to register, invalid input(s).");
+        else return StatusCode(201, employee);
     }
 
     [HttpPost("RegisterManager")]
     public ActionResult<Employee> PostEmployee(string email, string password, int roleid) {
-        Employee newEmployee = _ies.PostEmployee(email, password, roleid);
-        return Created("path/to/db", newEmployee);
+        Employee employee = new Employee();
+        try {
+            employee = _ies.PostEmployee(email, password, roleid);
+        } catch(Exception e) {
+            return StatusCode(500, e.Message);
+        }
+        if(employee is null) return StatusCode(400, "Unable to register, invalid input(s).");
+        else return StatusCode(201, employee);
     }
 
     [HttpGet("LoginEmployee")]
     public ActionResult<Employee> LoginEmployee(string email, string password) {
-        Employee employee = _ies.LoginEmployee(email, password);
-        return Created("path/", employee);
+        Employee employee = new Employee();
+        try {
+            employee = _ies.LoginEmployee(email, password);
+        } catch(Exception e) {
+            return StatusCode(500, e.Message);
+        }
+        if(employee is null) return StatusCode(400, "Unable to login, invalid input(s).");
+        else return StatusCode(200, employee);
     }
 
     [HttpPut("ChangePassword")]
     public ActionResult<Employee> EditEmployee(int targetId, string oldPassword, string newPassword) {
-        Employee employee = _ies.EditEmployee(targetId, oldPassword, newPassword);
-        return Created("path/", employee);
+        Employee employee = new Employee();
+        try {
+            employee = _ies.EditEmployee(targetId, oldPassword, newPassword);
+        } catch(Exception e) {
+            return StatusCode(500, e.Message);
+        }
+        if(employee is null) return StatusCode(400, "Unable to update password, invalid input(s).");
+        else return StatusCode(200, employee);
     }
 
     [HttpPut("ChangeEmail")]
     public ActionResult<Employee> EditEmployee(int targetId, string newEmail) {
-        Employee employee = _ies.EditEmployee(targetId, newEmail);
-        return Created("path/", employee);
+        Employee employee = new Employee();
+        try {
+            employee = _ies.EditEmployee(targetId, newEmail);
+        } catch(Exception e) {
+            return StatusCode(500, e.Message);
+        }
+        if(employee is null) return StatusCode(400, "Unable to update email, invalid input(s).");
+        else return StatusCode(200, employee);
     }
 
     [HttpPut("ChangeRole")]
     public ActionResult<Employee> EditEmployee(int managerId, int targetId, int newRoleId) {
-        Employee employee = _ies.EditEmployee(managerId, targetId, newRoleId);
-        return Created("path/", employee);
+        Employee employee = new Employee();
+        try {
+            employee = _ies.EditEmployee(managerId, targetId, newRoleId);
+        } catch(Exception e) {
+            return StatusCode(500, e.Message);
+        }
+        if(employee is null) return StatusCode(400, "Unable to update role, invalid input(s).");
+        else return StatusCode(200, employee);
     }
 
     [HttpGet("EmployeeTickets")]
     public ActionResult<List<ReimburseTicket>> EmployeeTickets(int empId) {
-        List<ReimburseTicket> employeeTickets = _its.GetEmployeeTickets(empId);
-        return Created("path/", employeeTickets);
+        List<ReimburseTicket> tickets = new List<ReimburseTicket>();
+        try {
+            tickets = _its.GetEmployeeTickets(empId);
+        } catch(Exception e) {
+            return StatusCode(500, e.Message);
+        }
+        if(tickets is null) return StatusCode(400, "Unable to retrieve tickets, invalid input.");
+        else return StatusCode(200, tickets);
     }
 
     [HttpGet("EmployeeTicketsByStatus")]
     public ActionResult<List<ReimburseTicket>> EmployeeTickets(int empId, int status) {
-        List<ReimburseTicket> employeeTickets = _its.GetEmployeeTickets(empId, status);
-        return Created("path/", employeeTickets);
+        List<ReimburseTicket> tickets = new List<ReimburseTicket>();
+        try {
+            tickets = _its.GetEmployeeTickets(empId, status);
+        } catch(Exception e) {
+            return StatusCode(500, e.Message);
+        }
+        if(tickets is null) return StatusCode(400, "Unable to retrieve tickets, invalid input.");
+        else return StatusCode(200, tickets);
     }
 }
