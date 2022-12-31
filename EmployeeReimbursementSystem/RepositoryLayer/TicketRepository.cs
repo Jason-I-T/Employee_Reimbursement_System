@@ -127,35 +127,7 @@ public class TicketRepository : ITicketRepository {
             string queryAllEmployeeTickets = "SELECT * FROM Ticket WHERE EmployeeId = @employeeId ORDER BY RequestDate;";
             SqlCommand command = new SqlCommand(queryAllEmployeeTickets, connection);
             command.Parameters.AddWithValue("@employeeId", employeeId);
-
-            try {
-                connection.Open();
-
-                using(SqlDataReader reader = command.ExecuteReader()) {
-                    if(!reader.HasRows) {
-                        // _logger.LogTicketGet(false, employeeId);
-                        return null!;
-                    } 
-                    while(reader.Read()) {
-                        ReimburseTicket newTicket = new ReimburseTicket(
-                            (string) reader[0],
-                            (string) reader[1],
-                            (double) reader[2],
-                            (string) reader[3],
-                            (int) reader[4],
-                            (DateTime) reader[5],
-                            (int) reader[6]
-                        );
-                        employeeTickets.Add(newTicket);
-                    }
-                    // _logger.LogTicketGet(true, employeeId);
-                    return employeeTickets;
-                }
-            } catch(Exception e) {
-                // _logger.LogTicketGet(false, employeeId);
-                //Console.WriteLine(e.Message);
-                return null!;
-            }
+            return ExecuteGetTickets(connection, command, employeeId);
         }
     }
 
@@ -166,78 +138,47 @@ public class TicketRepository : ITicketRepository {
             SqlCommand command = new SqlCommand(queryAllEmployeeTickets, connection);
             command.Parameters.AddWithValue("@employeeId", employeeId);
             command.Parameters.AddWithValue("@statusId", statusId);
-
-            try {
-                connection.Open();
-
-                using(SqlDataReader reader = command.ExecuteReader()) {
-                    if(!reader.HasRows) {
-                        // _logger.LogTicketGet(false, employeeId);
-                        return null!;
-                    } 
-                    while(reader.Read()) {
-                        if((int)reader[4] == statusId) {
-                            ReimburseTicket newTicket = new ReimburseTicket(
-                                (string) reader[0],
-                                (string) reader[1],
-                                (double) reader[2],
-                                (string) reader[3],
-                                (int) reader[4],
-                                (DateTime) reader[5],
-                                (int) reader[6]
-                            );
-                            employeeTickets.Add(newTicket);
-                        }
-                    }
-                    // _logger.LogTicketGet(true, employeeId);
-                    return employeeTickets;
-                }
-            } catch(Exception e) {
-                // _logger.LogTicketGet(false, employeeId);
-                //Console.WriteLine(e.Message);
-                return null!;
-            }
+            return ExecuteGetTickets(connection, command, $"{employeeId}, {statusId}");
         }
     }
 
     public Queue<ReimburseTicket> GetPending(int managerId) {
-    
-        Queue<ReimburseTicket> employeeTickets = new Queue<ReimburseTicket>();
         using(SqlConnection connection = new SqlConnection(_conString)) {
             string queryAllEmployeeTickets = "SELECT * FROM Ticket WHERE StatusId = @statusId ORDER BY RequestDate;";
             SqlCommand command = new SqlCommand(queryAllEmployeeTickets, connection);
             command.Parameters.AddWithValue("@statusId", 0);
-
-            try {
-                connection.Open();
-
-                using(SqlDataReader reader = command.ExecuteReader()) {
-                    if(!reader.HasRows) {
-                        // _logger.LogTicketGet(false, managerId);
-                        return null!;
-                    } 
-                    while(reader.Read()) {
-                        if((int)reader[4] == 0) {
-                            ReimburseTicket newTicket = new ReimburseTicket(
-                                (string) reader[0],
-                                (string) reader[1],
-                                (double) reader[2],
-                                (string) reader[3],
-                                (int) reader[4],
-                                (DateTime) reader[5],
-                                (int) reader[6]
-                            );
-                            employeeTickets.Enqueue(newTicket);
-                        }
-                    }
-                    // _logger.LogTicketGet(true, managerId);
-                    return employeeTickets;
-                }
-            } catch(Exception e) {
-                // _logger.LogTicketGet(false, managerId);
-                //Console.WriteLine(e.Message);
-                return null!;
-            }
+            return new Queue<ReimburseTicket>(ExecuteGetTickets(connection, command, managerId));
         }
+    }
+
+    private List<ReimburseTicket> ExecuteGetTickets(SqlConnection con, SqlCommand comm, object logInfo) {
+        List<ReimburseTicket> employeeTickets = new List<ReimburseTicket>();
+        try {
+            con.Open();
+            using(SqlDataReader reader = comm.ExecuteReader()) {
+                if(!reader.HasRows) {
+                    // _logger.LogTicketGet(false, employeeId);
+                    return null!;
+                } 
+                while(reader.Read()) {
+                    ReimburseTicket newTicket = new ReimburseTicket(
+                        (string) reader[0],
+                        (string) reader[1],
+                        (double) reader[2],
+                        (string) reader[3],
+                        (int) reader[4],
+                        (DateTime) reader[5],
+                        (int) reader[6]
+                    );
+                    employeeTickets.Add(newTicket);
+                }
+                // _logger.LogTicketGet(true, employeeId);
+                return employeeTickets;
+            }
+        } catch(Exception e) {
+            // _logger.LogTicketGet(false, employeeId);
+            //Console.WriteLine(e.Message);
+            return null!;
+        }    
     }
 }
