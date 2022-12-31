@@ -22,10 +22,10 @@ namespace ApiLayer.Controllers
         public ReimburseTicketController(ITicketService its) => this._its = its;
 
         [HttpPost("Ticket")]
-        public ActionResult<ReimburseTicket> Ticket(int employeeId, string reason, double amount, string description) {
+        public ActionResult<ReimburseTicket> Ticket(int employeeId, ReimburseTicket t) {
             ReimburseTicket ticket = new ReimburseTicket();
             try {
-                ticket = _its.AddTicket(employeeId, reason, amount, description);
+                ticket = _its.AddTicket(employeeId, t.reason!, t.amount, t.description!);
             } catch(Exception e) {
                 return StatusCode(500, e.Message);
             }
