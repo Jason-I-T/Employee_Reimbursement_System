@@ -19,7 +19,6 @@ public interface ITicketService {
 
 /**
  * TODO
- * - Reduce redundant code
  * - Add in loggers
  */
 public class TicketService : ITicketService {
