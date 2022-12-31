@@ -37,7 +37,7 @@ public class EmployeeController : ControllerBase {
         else return StatusCode(201, employee);
     }
 
-    [HttpGet("LoginEmployee")]
+    [HttpPost("LoginEmployee")]
     public async Task<ActionResult<Employee>> LoginEmployee(Employee e) {
         Employee employee = new Employee();
         try {
