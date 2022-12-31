@@ -31,7 +31,7 @@ public class TicketService : ITicketService {
     }
     
     public ReimburseTicket AddTicket(int empId, string reason, double amount, string desc) {
-        if(!_ievs.isEmployee(empId) || !_itvs.ValidTicket(reason, amount, desc)) {
+        if(!_itvs.ValidTicket(reason, amount, desc)) {
             Console.WriteLine("Invalid employeeId, or your ticket was invalid.");
             return null!;
         }
@@ -68,19 +68,19 @@ public class TicketService : ITicketService {
     }
 
     public List<ReimburseTicket> GetEmployeeTickets(int empId) {
-        if(!_ievs.isEmployee(empId)) {
-            Console.WriteLine("Invalid employeeId");
-            return null!;
-        } 
+        // if(!_ievs.isEmployee(empId)) {
+        //     Console.WriteLine("Invalid employeeId");
+        //     return null!;
+        // } 
 
         return _itr.GetTickets(empId);
     }
 
     public List<ReimburseTicket> GetEmployeeTickets(int empId, int status) {
-        if(!_ievs.isEmployee(empId)) {
-            Console.WriteLine("Invalid employeeId");
-            return null!;
-        }
+        // if(!_ievs.isEmployee(empId)) {
+        //     Console.WriteLine("Invalid employeeId");
+        //     return null!;
+        // }
     
         return _itr.GetTickets(empId, status);
     }

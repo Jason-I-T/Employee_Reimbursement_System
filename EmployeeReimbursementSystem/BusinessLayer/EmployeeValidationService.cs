@@ -15,7 +15,7 @@ namespace BusinessLayer
         public bool ValidRole(int roleId);
         public bool ValidRegistration(string email, string pass);
         public bool ValidRegistration(string email, string pass, int roleId);
-        public bool isEmployee(int id);
+        //public bool isEmployee(int id);
         public bool isManager(int id);
         public bool isPassword(int id, string oldPass);
     }
