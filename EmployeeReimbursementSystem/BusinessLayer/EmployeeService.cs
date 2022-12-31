@@ -23,9 +23,9 @@ public class EmployeeService : IEmployeeService {
     private readonly IEmployeeRepository _ier;
     private IRepositoryLogger _logger;
     private IEmployeeValidationService _ievs;
-    public EmployeeService(IEmployeeRepository ier, IRepositoryLogger logger) { 
+    public EmployeeService(IEmployeeRepository ier, IEmployeeValidationService ievs, IRepositoryLogger logger) { 
         this._ier = ier;
-        this._ievs = new EmployeeValidationService(_ier);
+        this._ievs = ievs;
         this._logger = logger;
     }
 

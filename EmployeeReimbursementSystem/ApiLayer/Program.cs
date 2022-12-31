@@ -21,6 +21,8 @@ public class Program
         builder.Services.AddScoped<ITicketService, TicketService>();
         builder.Services.AddScoped<IEmployeeRepository, EmployeeRepository>();
         builder.Services.AddScoped<ITicketRepository, TicketRepository>();
+        builder.Services.AddScoped<IEmployeeValidationService, EmployeeValidationService>();
+        builder.Services.AddScoped<ITicketValidationService, TicketValidationService>();
         builder.Services.AddSingleton<IRepositoryLogger, RepositoryLogger>();
 
         var app = builder.Build();

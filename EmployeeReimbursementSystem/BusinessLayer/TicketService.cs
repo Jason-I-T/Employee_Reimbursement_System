@@ -17,32 +17,36 @@ public interface ITicketService {
     public List<ReimburseTicket> GetEmployeeTickets(int empId, int status);
 }
 
+/**
+ * TODO
+ * - Reduce redundant code
+ * - Add in loggers
+ */
 public class TicketService : ITicketService {
     // Dependency Injection
     private readonly ITicketRepository _itr;
     private readonly IEmployeeRepository _ier;
     private IEmployeeValidationService _ievs;
     private ITicketValidationService _itvs;
-    public TicketService(ITicketRepository itr, IEmployeeRepository ier) {
+    public TicketService(ITicketRepository itr, IEmployeeRepository ier, IEmployeeValidationService ievs, ITicketValidationService itvs) {
         this._itr = itr;
         this._ier = ier;
-        this._ievs = new EmployeeValidationService(this._ier);
-        this._itvs = new TicketValidationService(this._itr);
+        this._ievs = ievs;
+        this._itvs = itvs;
     }
     
     public ReimburseTicket AddTicket(int empId, string reason, double amount, string desc) {
         if(!_itvs.ValidTicket(reason, amount, desc)) {
-            Console.WriteLine("Invalid employeeId, or your ticket was invalid.");
+            // Console.WriteLine("Invalid employeeId, or your ticket was invalid.");
             return null!;
         }
         string guid = Guid.NewGuid().ToString();
-        DateTime timeMade = DateTime.Now;
-        return _itr.PostTicket(guid, reason, amount, desc, timeMade, empId);
+        return _itr.PostTicket(guid, reason, amount, desc, DateTime.Now, empId);
     }
 
     public Queue<ReimburseTicket> GetPendingTickets(int managerId) {
         if(!_ievs.isManager(managerId)) {
-            Console.WriteLine("Employee does not exist or have the righ permissions");
+            // Console.WriteLine("Employee does not exist or have the righ permissions");
             return null!;
         } 
         
@@ -51,7 +55,7 @@ public class TicketService : ITicketService {
 
     public ReimburseTicket ApproveTicket(int empId, string ticketId) {
         if(!_ievs.isManager(empId) || !_itvs.ValidStatusChange(empId, ticketId)){
-            Console.WriteLine("Invalid manager Id, manager is trying edit an invalid ticket, or ticket doesn't exist");
+            // Console.WriteLine("Invalid manager Id, manager is trying edit an invalid ticket, or ticket doesn't exist");
             return null!;
         } 
 
@@ -60,28 +64,13 @@ public class TicketService : ITicketService {
 
     public ReimburseTicket DenyTicket(int empId, string ticketId) {
         if(!_ievs.isManager(empId) || !_itvs.ValidStatusChange(empId, ticketId)){
-            Console.WriteLine("Invalid manager Id, manager is trying to edit an invalid ticket, or ticket doesn't exist");
+            // Console.WriteLine("Invalid manager Id, manager is trying to edit an invalid ticket, or ticket doesn't exist");
             return null!;
         } 
 
         return _itr.UpdateTicket(ticketId, 2);
     }
 
-    public List<ReimburseTicket> GetEmployeeTickets(int empId) {
-        // if(!_ievs.isEmployee(empId)) {
-        //     Console.WriteLine("Invalid employeeId");
-        //     return null!;
-        // } 
-
-        return _itr.GetTickets(empId);
-    }
-
-    public List<ReimburseTicket> GetEmployeeTickets(int empId, int status) {
-        // if(!_ievs.isEmployee(empId)) {
-        //     Console.WriteLine("Invalid employeeId");
-        //     return null!;
-        // }
-    
-        return _itr.GetTickets(empId, status);
-    }
+    public List<ReimburseTicket> GetEmployeeTickets(int empId) => _itr.GetTickets(empId);
+    public List<ReimburseTicket> GetEmployeeTickets(int empId, int status) => _itr.GetTickets(empId, status);
 }
