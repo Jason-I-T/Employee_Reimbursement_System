@@ -25,13 +25,16 @@ public interface ITicketRepository {
 
 public class TicketRepository : ITicketRepository {
     // Injecting logger
-    private readonly ILoggerTicketRepository _loggerTR;
-    public TicketRepository(ILoggerTicketRepository logger) => this._loggerTR = logger;
+    private readonly IRepositoryLogger _logger;
+    private string _conString;
+    public TicketRepository(IRepositoryLogger logger) {
+        this._logger = logger;
+        this._conString = File.ReadAllText("../../ConString.txt");
+    }
     
     
     public ReimburseTicket UpdateTicket(string ticketId, int statusId) {
-        string conString = File.ReadAllText("../../ConString.txt");
-        using(SqlConnection connection = new SqlConnection(conString)) {
+        using(SqlConnection connection = new SqlConnection(_conString)) {
             string updateTicketQuery = "UPDATE Ticket SET StatusId = @statusId WHERE TicketId = @ticketId";
             SqlCommand command = new SqlCommand(updateTicketQuery, connection);
             command.Parameters.AddWithValue("@statusId", statusId);
@@ -40,23 +43,22 @@ public class TicketRepository : ITicketRepository {
                 connection.Open();
                 int rowsAffected = command.ExecuteNonQuery();
                 if(rowsAffected == 1) {
-                    _loggerTR.LogTicketPut(true, ticketId);
+                    // _logger.LogTicketPut(true, ticketId);
                     return GetTicket(ticketId);
                 } else {
-                    _loggerTR.LogTicketPut(false, ticketId);
+                    // _logger.LogTicketPut(false, ticketId);
                     return null!;
                 }
             } catch(Exception e) {
-                _loggerTR.LogTicketPut(false, ticketId);
-                Console.WriteLine(e.Message);
+                // _logger.LogTicketPut(false, ticketId);
+                //Console.WriteLine(e.Message);
                 return null!;
             }
         }
     }
 
     public ReimburseTicket PostTicket(string guid, string r, double a, string d, DateTime t, int eId) {
-        string conString = File.ReadAllText("../../ConString.txt");
-        using(SqlConnection connection = new SqlConnection(conString)) {
+        using(SqlConnection connection = new SqlConnection(_conString)) {
             string insertTicketQuery = "INSERT INTO Ticket (TicketId, Reason, Amount, Description, StatusId, RequestDate, EmployeeId) VALUES (@guid, @r, @a, @d, 0, @t, @eId);";
             SqlCommand command = new SqlCommand(insertTicketQuery, connection);
             command.Parameters.AddWithValue("@guid", guid);
@@ -70,23 +72,22 @@ public class TicketRepository : ITicketRepository {
                 connection.Open();
                 int rowsAffected = command.ExecuteNonQuery();
                 if(rowsAffected == 1) {
-                    _loggerTR.LogTicketPost(true, guid);
+                    // _logger.LogTicketPost(true, guid);
                     return GetTicket(guid);
                 } else {
-                    _loggerTR.LogTicketPost(false, guid);
+                    // _logger.LogTicketPost(false, guid);
                     return null!;
                 }
             } catch(Exception e) {
-                _loggerTR.LogTicketPost(false, guid);
-                Console.WriteLine(e.Message);
+                // _logger.LogTicketPost(false, guid);
+                //Console.WriteLine(e.Message);
                 return null!;
             }
         }
     }
 
     public ReimburseTicket GetTicket(string ticketId) {
-        string conString = File.ReadAllText("../../ConString.txt");
-        using(SqlConnection connection = new SqlConnection(conString)) {
+        using(SqlConnection connection = new SqlConnection(_conString)) {
             string queryTicketById = "SELECT * FROM Ticket WHERE TicketId = @ticketId;";
             SqlCommand command = new SqlCommand(queryTicketById, connection);
             command.Parameters.AddWithValue("@ticketId", ticketId);
@@ -95,12 +96,12 @@ public class TicketRepository : ITicketRepository {
 
                 using(SqlDataReader reader = command.ExecuteReader()) {
                     if(!reader.HasRows) {
-                        _loggerTR.LogTicketGet(false, ticketId);
+                        // _logger.LogTicketGet(false, ticketId);
                         return null!;
                     } 
                     else {
                         reader.Read();
-                        _loggerTR.LogTicketGet(true, ticketId);
+                        // _logger.LogTicketGet(true, ticketId);
                         return new ReimburseTicket(
                             (string) reader[0],
                             (string) reader[1],
@@ -113,17 +114,16 @@ public class TicketRepository : ITicketRepository {
                     }
                 }
             } catch(Exception e) {
-                _loggerTR.LogTicketGet(false, ticketId);
-                Console.WriteLine(e.Message);
+                // _logger.LogTicketGet(false, ticketId);
+                //Console.WriteLine(e.Message);
                 return null!;
             }
         }
     }
 
     public List<ReimburseTicket> GetTickets(int employeeId) {
-        string conString = File.ReadAllText("../../ConString.txt");
         List<ReimburseTicket> employeeTickets = new List<ReimburseTicket>();
-        using(SqlConnection connection = new SqlConnection(conString)) {
+        using(SqlConnection connection = new SqlConnection(_conString)) {
             string queryAllEmployeeTickets = "SELECT * FROM Ticket WHERE EmployeeId = @employeeId ORDER BY RequestDate;";
             SqlCommand command = new SqlCommand(queryAllEmployeeTickets, connection);
             command.Parameters.AddWithValue("@employeeId", employeeId);
@@ -133,7 +133,7 @@ public class TicketRepository : ITicketRepository {
 
                 using(SqlDataReader reader = command.ExecuteReader()) {
                     if(!reader.HasRows) {
-                        _loggerTR.LogTicketGet(false, employeeId);
+                        // _logger.LogTicketGet(false, employeeId);
                         return null!;
                     } 
                     while(reader.Read()) {
@@ -148,21 +148,20 @@ public class TicketRepository : ITicketRepository {
                         );
                         employeeTickets.Add(newTicket);
                     }
-                    _loggerTR.LogTicketGet(true, employeeId);
+                    // _logger.LogTicketGet(true, employeeId);
                     return employeeTickets;
                 }
             } catch(Exception e) {
-                _loggerTR.LogTicketGet(false, employeeId);
-                Console.WriteLine(e.Message);
+                // _logger.LogTicketGet(false, employeeId);
+                //Console.WriteLine(e.Message);
                 return null!;
             }
         }
     }
 
     public List<ReimburseTicket> GetTickets(int employeeId, int statusId) {
-        string conString = File.ReadAllText("../../ConString.txt");
         List<ReimburseTicket> employeeTickets = new List<ReimburseTicket>();
-        using(SqlConnection connection = new SqlConnection(conString)) {
+        using(SqlConnection connection = new SqlConnection(_conString)) {
             string queryAllEmployeeTickets = "SELECT * FROM Ticket WHERE EmployeeId = @employeeId AND StatusId = @statusId ORDER BY RequestDate;";
             SqlCommand command = new SqlCommand(queryAllEmployeeTickets, connection);
             command.Parameters.AddWithValue("@employeeId", employeeId);
@@ -173,7 +172,7 @@ public class TicketRepository : ITicketRepository {
 
                 using(SqlDataReader reader = command.ExecuteReader()) {
                     if(!reader.HasRows) {
-                        _loggerTR.LogTicketGet(false, employeeId);
+                        // _logger.LogTicketGet(false, employeeId);
                         return null!;
                     } 
                     while(reader.Read()) {
@@ -190,21 +189,21 @@ public class TicketRepository : ITicketRepository {
                             employeeTickets.Add(newTicket);
                         }
                     }
-                    _loggerTR.LogTicketGet(true, employeeId);
+                    // _logger.LogTicketGet(true, employeeId);
                     return employeeTickets;
                 }
             } catch(Exception e) {
-                _loggerTR.LogTicketGet(false, employeeId);
-                Console.WriteLine(e.Message);
+                // _logger.LogTicketGet(false, employeeId);
+                //Console.WriteLine(e.Message);
                 return null!;
             }
         }
     }
 
     public Queue<ReimburseTicket> GetPending(int managerId) {
-                string conString = File.ReadAllText("../../ConString.txt");
+    
         Queue<ReimburseTicket> employeeTickets = new Queue<ReimburseTicket>();
-        using(SqlConnection connection = new SqlConnection(conString)) {
+        using(SqlConnection connection = new SqlConnection(_conString)) {
             string queryAllEmployeeTickets = "SELECT * FROM Ticket WHERE StatusId = @statusId ORDER BY RequestDate;";
             SqlCommand command = new SqlCommand(queryAllEmployeeTickets, connection);
             command.Parameters.AddWithValue("@statusId", 0);
@@ -214,7 +213,7 @@ public class TicketRepository : ITicketRepository {
 
                 using(SqlDataReader reader = command.ExecuteReader()) {
                     if(!reader.HasRows) {
-                        _loggerTR.LogTicketGet(false, managerId);
+                        // _logger.LogTicketGet(false, managerId);
                         return null!;
                     } 
                     while(reader.Read()) {
@@ -231,12 +230,12 @@ public class TicketRepository : ITicketRepository {
                             employeeTickets.Enqueue(newTicket);
                         }
                     }
-                    _loggerTR.LogTicketGet(true, managerId);
+                    // _logger.LogTicketGet(true, managerId);
                     return employeeTickets;
                 }
             } catch(Exception e) {
-                _loggerTR.LogTicketGet(false, managerId);
-                Console.WriteLine(e.Message);
+                // _logger.LogTicketGet(false, managerId);
+                //Console.WriteLine(e.Message);
                 return null!;
             }
         }
