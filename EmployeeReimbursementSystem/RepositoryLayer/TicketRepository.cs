@@ -19,9 +19,9 @@ public interface ITicketRepository {
 
 public class TicketRepository : ITicketRepository {
     // Injecting logger
-    private readonly IRepositoryLogger _logger;
+    private readonly IDataLogger _logger;
     private string _conString;
-    public TicketRepository(IRepositoryLogger logger) {
+    public TicketRepository(IDataLogger logger) {
         this._logger = logger;
         this._conString = File.ReadAllText("../../ConString.txt");
     }

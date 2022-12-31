@@ -21,9 +21,9 @@ public interface IEmployeeService {
 public class EmployeeService : IEmployeeService {
 
     private readonly IEmployeeRepository _ier;
-    private IRepositoryLogger _logger;
+    private IDataLogger _logger;
     private IEmployeeValidationService _ievs;
-    public EmployeeService(IEmployeeRepository ier, IEmployeeValidationService ievs, IRepositoryLogger logger) { 
+    public EmployeeService(IEmployeeRepository ier, IEmployeeValidationService ievs, IDataLogger logger) { 
         this._ier = ier;
         this._ievs = ievs;
         this._logger = logger;
