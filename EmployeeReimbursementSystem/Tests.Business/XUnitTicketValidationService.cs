@@ -43,7 +43,7 @@ namespace Tests.Business
 
         [Theory]
         [InlineData("")]
-        [InlineData("A Valid description.")]
+        [InlineData("A Valid description yeah.")]
         public void ValidDescription(string description) {
             string[] s = {""};
             var mtr = new MockTicketRepository();
