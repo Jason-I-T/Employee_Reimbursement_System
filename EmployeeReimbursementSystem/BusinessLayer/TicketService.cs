@@ -40,7 +40,7 @@ public class TicketService : ITicketService {
             return null!;
         }
         string guid = Guid.NewGuid().ToString();
-        return _itr.PostTicket(guid, reason, amount, desc, DateTime.Now, empId);
+        return _itr.PostTicket(guid, reason, Math.Round(amount, 2), desc, DateTime.Now, empId);
     }
 
     public Queue<ReimburseTicket> GetPendingTickets(int managerId) {

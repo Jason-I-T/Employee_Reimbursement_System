@@ -12,7 +12,6 @@ public interface ITicketValidationService {
     public bool ValidAmount(double amount);
     public bool ValidDescription(string description);
     public bool ValidTicket(string reason, double amount, string description);
-    // public bool isTicket(string ticketId);
     public bool ValidStatusChange(int managerId, string ticketId);
 }
 
