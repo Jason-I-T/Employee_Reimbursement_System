@@ -32,6 +32,16 @@ public class EmployeeController : ControllerBase {
         else return StatusCode(201, employee);
     }
 
+    /**
+     * TODO, do authentication with a session.
+     * When user logs in, the API will...
+     * - Verify the credentials against the database
+     * - DB creates a temporary user session (in a LoginSession table)
+     * - API issues a cookie with a sessionId. 
+     * - Every request, user sends the cookie for authorization.
+     * - Server validates the cookie against the session store (here, a table in database)
+     * - User logs out, destroy the session & clear the cookie. (will need a logout func, maybe a timeout too?)
+     */
     [HttpPost("LoginEmployee")]
     public async Task<ActionResult<Employee>> LoginEmployee(Employee e) {
         Employee employee = new Employee();
