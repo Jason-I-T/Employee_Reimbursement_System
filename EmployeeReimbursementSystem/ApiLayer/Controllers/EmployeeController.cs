@@ -33,25 +33,25 @@ public class EmployeeController : ControllerBase {
     }
 
     /**
-     * TODO, do authentication with a session.
+     * TODO, do authentication with sessions + cookie.
      * When user logs in, the API will...
-     * - Verify the credentials against the database
-     * - DB creates a temporary user session (in a LoginSession table)
-     * - API issues a cookie with a sessionId. 
-     * - Every request, user sends the cookie for authorization.
-     * - Server validates the cookie against the session store (here, a table in database)
-     * - User logs out, destroy the session & clear the cookie. (will need a logout func, maybe a timeout too?)
+     * Verify the credentials against the database
+     ** DB creates a temporary user session (in a LoginSession table)
+     ** API issues a cookie with a sessionId. 
+     ** Every request, user sends the cookie for authorization.
+     ** Server validates the cookie against the session store (here, a table in database)
+     ** User logs out, destroy the session & clear the cookie. (will need a logout func, maybe a timeout too?)
      */
     [HttpPost("LoginEmployee")]
     public async Task<ActionResult<Employee>> LoginEmployee(Employee e) {
-        Employee employee = new Employee();
+        string sessionId = null!;
         try {
-            employee = await _ies.LoginEmployee(e.email!, e.password!);
+            sessionId = await _ies.LoginEmployee(e.email!, e.password!);
         } catch(Exception ex) {
             return StatusCode(500, ex.Message);
         }
-        if(employee is null) return StatusCode(400, "Unable to login, invalid input(s).");
-        else return StatusCode(200, employee);
+        if(sessionId is null) return StatusCode(400, "Unable to login, invalid input(s).");
+        else return StatusCode(200, sessionId);
     }
 
     [HttpPut("ChangePassword")]
