@@ -36,7 +36,7 @@ public class EmployeeController : ControllerBase {
      * TODO, do authentication with sessions + cookie.
      * When user logs in, the API will...
      * Verify the credentials against the database
-     ** DB creates a temporary user session (in a LoginSession table)
+     * DB creates a temporary user session (in a LoginSession table)
      ** API issues a cookie with a sessionId. 
      ** Every request, user sends the cookie for authorization.
      ** Server validates the cookie against the session store (here, a table in database)

@@ -101,7 +101,6 @@ namespace RepositoryLayer
             }
         }
         
-        // TODO: Verify credentials against database. Insert employeeId, sessionId, timestamp into LoginSession table. Return sessionId.
         public async Task<string> LoginEmployee(string email, string password) {
             string sessionId = Guid.NewGuid().ToString();
             using(SqlConnection connection = new SqlConnection(_conString)) {
@@ -113,9 +112,9 @@ namespace RepositoryLayer
                 Employee verifiedEmployee = await VerifyLoginCredentials(connection, command, $"{email}, {password}");
                 if(verifiedEmployee is null) return null!;
 
-                // Insert employeeId, sessionId, timestamp into LoginSession table. Return the created sessionId
+                // Insert employeeId, sessionId, timestamp into LoginSession table. Return the created sessionId from the database.
                 DateTime timeStamp = DateTime.Now;
-                string insertLoginSession = "INSERT INTO Session VALUE (@SessionId, @EmployeeId, @LastRequest);";
+                string insertLoginSession = "INSERT INTO Session VALUES (@SessionId, @EmployeeId, @LastRequest); SELECT SessionId FROM Session WHERE EmployeeId = @EmployeeId;";
                 command = new SqlCommand(insertLoginSession, connection);
                 command.Parameters.AddWithValue("@SessionId", sessionId);
                 command.Parameters.AddWithValue("@EmployeeId", verifiedEmployee.id);
@@ -124,7 +123,7 @@ namespace RepositoryLayer
             }
         }
         
-        // Helper methods
+        /******************************************* Helper methods *******************************************/
         private async Task<Employee> ExecuteUpdate(SqlConnection con, SqlCommand comm, int id, object logInfo) {
             // Steps for updating an employee
             try { 
@@ -199,8 +198,25 @@ namespace RepositoryLayer
             }
         }
 
-        private async Task<string> ExecuteLoginSessionInsert(SqlConnection con, SqlCommand comm, object LogInfo) {
-            throw new NotImplementedException();
+        private async Task<string> ExecuteLoginSessionInsert(SqlConnection con, SqlCommand comm, object logInfo) {
+            try { 
+                await con.OpenAsync();
+                using(SqlDataReader reader = await comm.ExecuteReaderAsync()) {
+                    if(!reader.HasRows) {
+                        _logger.LogError("LoginEmployee", "POST", logInfo, "Login Error: Insertion error");
+                        return null!;
+                    } else { 
+                        await reader.ReadAsync();   
+                        _logger.LogSuccess("LoginEmployee", "POST", logInfo);
+                        return (string) reader[0];
+                    }
+                }
+            } catch(Exception e) {
+                _logger.LogError("LoginEmployee", "POST", logInfo, e.Message);
+                return null!;
+            } finally {
+                await con.CloseAsync();
+            }
         }
     }
 }
