@@ -52,6 +52,7 @@ public class EmployeeController : ControllerBase {
         try { 
             // TODO sessionId is a guid, look into System.Security.Cryptography to generate better ids
             sessionId = await _ies.LoginEmployee(e.email!, e.password!);
+            // TODO Need to delete login session from Session table
             if(sessionId is null) return StatusCode(400, "Unable to login, invalid input(s).");
             CookieOptions options = new CookieOptions();
             options.Expires = DateTime.Now.AddMinutes(15);
@@ -108,7 +109,8 @@ public class EmployeeController : ControllerBase {
         List<ReimburseTicket> tickets = new List<ReimburseTicket>();
         var cookie = Request.Cookies[_cookieName];
         try {
-            if(cookie is null) return StatusCode(401, "Error: Invalid cookies");
+            // TODO Need to delete login session from Session table
+            if(cookie is null) return StatusCode(401, "Error: Invalid cookies"); 
             tickets = await _its.GetEmployeeTickets(employeeId);
         } catch(Exception ex) {
             return StatusCode(500, ex.Message);

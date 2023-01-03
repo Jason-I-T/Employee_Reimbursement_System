@@ -9,12 +9,13 @@ using ModelLayer;
 namespace RepositoryLayer
 {
     public interface IEmployeeRepository {
-        Task<Employee> UpdateEmployee(int id, int roleId);
+        Task<Employee> UpdateEmployee(int id, int roleId, int managerId);
         Task<Employee> UpdateEmployee(int id, string info);
         Task<Employee> PostEmployee(string email, string password, int roleId);
         Task<Employee> GetEmployee(string email);
         Task<Employee> GetEmployee(int id);
         Task<string> LoginEmployee(string email, string password);
+        Task UpdateLastRequest(int employeeId);
     }
 
     public class EmployeeRepository : IEmployeeRepository {
@@ -27,7 +28,8 @@ namespace RepositoryLayer
         } 
 
         // Update an employee's role, email, or password
-        public async Task<Employee> UpdateEmployee(int id, int roleId) {
+        public async Task<Employee> UpdateEmployee(int id, int roleId, int managerId) {
+            await UpdateLastRequest(managerId);
             using(SqlConnection connection = new SqlConnection(_conString)) {
                 string updateEmployeeQuery = "UPDATE Employee SET RoleId = @RoleId WHERE EmployeeId = @Id;";
                 SqlCommand command = new SqlCommand(updateEmployeeQuery, connection);
@@ -39,6 +41,7 @@ namespace RepositoryLayer
         }
 
         public async Task<Employee> UpdateEmployee(int id, string info) {
+            await UpdateLastRequest(id);
             string regex = @"^([a-zA-Z0-9_\-\.]+)@([a-zA-Z0-9_\-\.]+)\.([a-zA-Z]{2,5})$";
             using(SqlConnection connection = new SqlConnection(_conString)) {
                 string updateEmployeeQuery;
@@ -125,8 +128,6 @@ namespace RepositoryLayer
         
         /******************************************* Helper methods *******************************************/
         private async Task<Employee> ExecuteUpdate(SqlConnection con, SqlCommand comm, int id, object logInfo) {
-            // TODO Update LastRequest column in session table for employeeId
-            // UpdateRequestTime(connection, command, eId);
             // Steps for updating an employee
             try { 
                 await con.OpenAsync();
@@ -219,6 +220,31 @@ namespace RepositoryLayer
             } finally {
                 await con.CloseAsync();
             }
+        }
+
+        // Update LastRequest column in session table with updated datetime.
+        public async Task UpdateLastRequest(int employeeId) {
+            DateTime lastRequest = DateTime.Now;
+            using(SqlConnection connection = new SqlConnection(_conString)) {
+                string updateQuery = "UPDATE Session SET LastRequest = @LastRequest WHERE EmployeeId = @employeeId";
+                SqlCommand command = new SqlCommand(updateQuery, connection);
+                command.Parameters.AddWithValue("@LastRequest", lastRequest);
+                command.Parameters.AddWithValue("@EmployeeId", employeeId);
+                try { 
+                    await connection.OpenAsync();
+                    int rowsAffected = await command.ExecuteNonQueryAsync();
+                    if(rowsAffected == 1) {
+                        _logger.LogSuccess("UpdateLastRequest", "PUT", employeeId);
+                        //return await GetEmployee(id);
+                    } else {    
+                        _logger.LogError("UpdateLastRequest", "PUT", employeeId, "Session Update Error");
+                        //return null!;
+                    } 
+                } catch(Exception e) {
+                    _logger.LogError("UpdateLastRequest", "PUT", employeeId, e.Message);
+                    //return null!;
+                }
+            }            
         }
     }
 }

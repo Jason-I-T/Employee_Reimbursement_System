@@ -75,7 +75,7 @@ public class EmployeeService : IEmployeeService {
             return null!;
         }
         
-        return await _ier.UpdateEmployee(employeeId, roleId);
+        return await _ier.UpdateEmployee(employeeId, roleId, managerId);
     }
     #endregion
 }
