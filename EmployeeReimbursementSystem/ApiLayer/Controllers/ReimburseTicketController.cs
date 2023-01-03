@@ -7,10 +7,6 @@ using Microsoft.AspNetCore.Mvc;
 using ModelLayer;
 using BusinessLayer;
 
-/**
- * TODO, Add descriptive status codes & refactor to be async
- * - Make methods async
- */
 namespace ApiLayer.Controllers
 {
     [ApiController]
