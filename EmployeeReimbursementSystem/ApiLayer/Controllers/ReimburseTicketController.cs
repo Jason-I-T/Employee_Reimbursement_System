@@ -30,6 +30,7 @@ namespace ApiLayer.Controllers
             else return StatusCode(201, ticket);
         }
 
+        // TODO Add authorization
         [HttpGet("PendingTickets")]
         public async Task<ActionResult<Queue<ReimburseTicket>>> PendingTickets(int managerId) {
             Queue<ReimburseTicket> tickets = new Queue<ReimburseTicket>();

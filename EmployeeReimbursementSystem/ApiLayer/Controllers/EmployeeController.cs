@@ -127,6 +127,7 @@ public class EmployeeController : ControllerBase {
         }
     }
 
+    // TODO Add authorization
     [HttpGet("EmployeeTicketsByStatus")]
     public async Task<ActionResult<List<ReimburseTicket>>> EmployeeTickets(int employeeId, int status) {
         List<ReimburseTicket> tickets = new List<ReimburseTicket>();
