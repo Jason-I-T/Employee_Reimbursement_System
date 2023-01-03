@@ -16,10 +16,12 @@ public class EmployeeController : ControllerBase {
     private readonly IEmployeeService _ies;
     private readonly ITicketService _its;
     private readonly IHttpContextAccessor _httpContextAccessor;
+    private string _cookieName;
     public EmployeeController(IEmployeeService ies, ITicketService its, IHttpContextAccessor httpContextAccessor) {
         this._ies = ies;
         this._its = its;
         this._httpContextAccessor = httpContextAccessor;
+        this._cookieName = "AuthCookie";
     }
         
     [HttpPost("Register")]
@@ -47,20 +49,22 @@ public class EmployeeController : ControllerBase {
     [HttpPost("LoginEmployee")]
     public async Task<ActionResult<Employee>> LoginEmployee(Employee e) {
         string sessionId = null!;
-        try { // TODO sessionId is a guid, look into System.Security.Cryptography to generate better ids
+        try { 
+            // TODO sessionId is a guid, look into System.Security.Cryptography to generate better ids
             sessionId = await _ies.LoginEmployee(e.email!, e.password!);
             if(sessionId is null) return StatusCode(400, "Unable to login, invalid input(s).");
             CookieOptions options = new CookieOptions();
             options.Expires = DateTime.Now.AddMinutes(15);
             options.Path = "/"; // ? what does this do
             options.Secure = true; // Ensure cookie is properly secured using SSL/TLS encryption(?)
-            _httpContextAccessor.HttpContext!.Response.Cookies.Append("AuthCookie", sessionId, options);
+            _httpContextAccessor.HttpContext!.Response.Cookies.Append(_cookieName, sessionId, options);
         } catch(Exception ex) {
             return StatusCode(500, ex.Message);
         }
         return StatusCode(200, sessionId);
     }
 
+    // TODO Add authorization
     [HttpPut("ChangePassword")]
     public async Task<ActionResult<Employee>> EditEmployee(Employee e, string oldPassword) {
         Employee employee = new Employee();
@@ -73,6 +77,7 @@ public class EmployeeController : ControllerBase {
         else return StatusCode(200, employee);
     }
 
+    // TODO Add authorization
     [HttpPut("ChangeEmail")]
     public async Task<ActionResult<Employee>> EditEmployee(Employee e) {
         Employee employee = new Employee();
@@ -85,6 +90,7 @@ public class EmployeeController : ControllerBase {
         else return StatusCode(200, employee);
     }
 
+    // TODO Add authorization
     [HttpPut("ChangeRole")]
     public async Task<ActionResult<Employee>> EditEmployee(int managerId, int targetId, int newRoleId) {
         Employee employee = new Employee();
@@ -100,13 +106,25 @@ public class EmployeeController : ControllerBase {
     [HttpGet("EmployeeTickets")]
     public async Task<ActionResult<List<ReimburseTicket>>> EmployeeTickets(int employeeId) {
         List<ReimburseTicket> tickets = new List<ReimburseTicket>();
+        var cookie = Request.Cookies[_cookieName];
         try {
+            if(cookie is null) return StatusCode(401, "Error: Invalid cookies");
             tickets = await _its.GetEmployeeTickets(employeeId);
         } catch(Exception ex) {
             return StatusCode(500, ex.Message);
         }
-        if(tickets is null) return StatusCode(400, "Unable to retrieve tickets, invalid input.");
-        else return StatusCode(200, tickets);
+        if(tickets is null) return StatusCode(401, "Unable to retrieve tickets, invalid input.");
+        else { 
+            // Extend time on cookie
+            _httpContextAccessor.HttpContext!.Response.Cookies.Delete(cookie);
+            CookieOptions options = new CookieOptions();
+            options.Expires = DateTime.Now.AddMinutes(15);
+            options.Path = "/"; // Make cookie available to all parts of the system
+            options.Secure = true; // Ensure cookie is properly secured using SSL/TLS encryption(?)
+            _httpContextAccessor.HttpContext!.Response.Cookies.Append(_cookieName, cookie, options);
+
+            return StatusCode(200, tickets);
+        }
     }
 
     [HttpGet("EmployeeTicketsByStatus")]
