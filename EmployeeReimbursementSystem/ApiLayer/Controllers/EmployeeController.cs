@@ -52,7 +52,6 @@ public class EmployeeController : ControllerBase {
         try { 
             // TODO sessionId is a guid, look into System.Security.Cryptography to generate better ids
             sessionId = await _ies.LoginEmployee(e.email!, e.password!);
-            // TODO Need to delete login session from Session table
             if(sessionId is null) return StatusCode(400, "Unable to login, invalid input(s).");
             CookieOptions options = new CookieOptions();
             options.Expires = DateTime.Now.AddMinutes(15);
@@ -109,20 +108,22 @@ public class EmployeeController : ControllerBase {
         List<ReimburseTicket> tickets = new List<ReimburseTicket>();
         var cookie = Request.Cookies[_cookieName];
         try {
-            // TODO Need to delete login session from Session table
-            if(cookie is null) return StatusCode(401, "Error: Invalid cookies"); 
-            tickets = await _its.GetEmployeeTickets(employeeId);
+            if(cookie is null) { // If cookie is invalid, close the session. Return unauthenticated status code
+                string result = await _ies.CloseSession(employeeId);
+                return StatusCode(401, $"Error: Invalid cookies or session expired.\nCloseSession: {result}"); 
+            }
+            tickets = await _its.GetEmployeeTickets(employeeId, cookie); // Sending cookie for authorization against session store
         } catch(Exception ex) {
             return StatusCode(500, ex.Message);
         }
-        if(tickets is null) return StatusCode(401, "Unable to retrieve tickets, invalid input.");
+        if(tickets is null) return StatusCode(400, "Unable to retrieve tickets, invalid input.");
         else { 
-            // Extend time on cookie
+            // To ensure cookie doesn't expire automatically
             _httpContextAccessor.HttpContext!.Response.Cookies.Delete(cookie);
             CookieOptions options = new CookieOptions();
-            options.Expires = DateTime.Now.AddMinutes(15);
+            options.Expires = DateTime.Now.AddMinutes(15); // Extend time on cookie
             options.Path = "/"; // Make cookie available to all parts of the system
-            options.Secure = true; // Ensure cookie is properly secured using SSL/TLS encryption(?)
+            options.Secure = true; // Ensure cookie is properly secured using SSL
             _httpContextAccessor.HttpContext!.Response.Cookies.Append(_cookieName, cookie, options);
 
             return StatusCode(200, tickets);

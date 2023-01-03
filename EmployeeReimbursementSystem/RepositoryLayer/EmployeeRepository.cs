@@ -16,6 +16,7 @@ namespace RepositoryLayer
         Task<Employee> GetEmployee(int id);
         Task<string> LoginEmployee(string email, string password);
         Task UpdateLastRequest(int employeeId);
+        Task<string> CloseSession(int employeeId);
     }
 
     public class EmployeeRepository : IEmployeeRepository {
@@ -122,7 +123,57 @@ namespace RepositoryLayer
                 command.Parameters.AddWithValue("@SessionId", sessionId);
                 command.Parameters.AddWithValue("@EmployeeId", verifiedEmployee.id);
                 command.Parameters.AddWithValue("@LastRequest", timeStamp);
-                return await ExecuteLoginSessionInsert(connection, command, $"{sessionId}, {verifiedEmployee.id}, {timeStamp}");
+                return await ExecuteLoginSessionInsert(connection, command, $"{sessionId}, {verifiedEmployee.id}, {timeStamp}", email);
+            }
+        }
+
+        /** 
+          * TODO Move to an auth repository class
+          * Close a session based on an employee. Checks if session has expired first. 
+          */
+        public async Task<string> CloseSession(int employeeId) { //, string email=null!
+            using(SqlConnection connection = new SqlConnection(_conString)) {
+                string deleteSession = "DELETE FROM Session WHERE EmployeeId = @employeeId AND DATEDIFF(minute, LastRequest, @now) >= 15;"; //
+                SqlCommand command = new SqlCommand(deleteSession, connection);
+                command.Parameters.AddWithValue("@employeeId", employeeId);
+                command.Parameters.AddWithValue("@now", DateTime.Now);
+                try {
+                    await connection.OpenAsync();
+                    int rowsAffected = await command.ExecuteNonQueryAsync();
+                    if(rowsAffected == 1) {
+                        _logger.LogSuccess("CloseSession", "DELETE", employeeId);
+                        return "Success";
+                    } else {
+                        _logger.LogError("CloseSession", "DELETE", employeeId, "Error: invalid input or session still valid");
+                        return null!;
+                    }
+                } catch(Exception ex) {
+                        _logger.LogError("CloseSession", "DELETE", employeeId, ex.Message);
+                        return null!;
+                }
+            }
+        }
+
+        // Close session based on email. For logging in if a session already exists.
+        private async Task<string> CloseSession(string email) {
+            using(SqlConnection connection = new SqlConnection(_conString)) {
+                string deleteSession = "DELETE S FROM Employee E LEFT JOIN Session S ON E.EmployeeId = S.EmployeeId WHERE Email = @email"; //AND DATEDIFF(minute, LastRequest, @now) >= 15;
+                SqlCommand command = new SqlCommand(deleteSession, connection);
+                command.Parameters.AddWithValue("@email", email);
+                try {
+                    await connection.OpenAsync();
+                    int rowsAffected = await command.ExecuteNonQueryAsync();
+                    if(rowsAffected == 1) {
+                        _logger.LogSuccess("CloseSession", "DELETE", email);
+                        return "Success";
+                    } else {
+                        _logger.LogError("CloseSession", "DELETE", email, "Error: invalid input or session still valid");
+                        return null!;
+                    }
+                } catch(Exception ex) {
+                        _logger.LogError("CloseSession", "DELETE", email, ex.Message);
+                        return null!;
+                }
             }
         }
         
@@ -201,7 +252,7 @@ namespace RepositoryLayer
             }
         }
 
-        private async Task<string> ExecuteLoginSessionInsert(SqlConnection con, SqlCommand comm, object logInfo) {
+        private async Task<string> ExecuteLoginSessionInsert(SqlConnection con, SqlCommand comm, object logInfo, string email) {
             try { 
                 await con.OpenAsync();
                 using(SqlDataReader reader = await comm.ExecuteReaderAsync()) {
@@ -214,15 +265,26 @@ namespace RepositoryLayer
                         return (string) reader[0];
                     }
                 }
-            } catch(Exception e) {
-                _logger.LogError("LoginEmployee", "POST", logInfo, e.Message);
+            } catch(SqlException sex) {  
+                await con.CloseAsync();  
+                if(sex.Number == 2627) { // Unique key constraint error. There's a user logged in with the creds
+                    await CloseSession(email); // Delete existing login session from database, try logging in again
+                    return await ExecuteLoginSessionInsert(con, comm, logInfo, email);
+                }
+                _logger.LogError("LoginEmployee", "POST", logInfo, sex.Message);
+                return null!; 
+            }catch(Exception ex) {
+                _logger.LogError("LoginEmployee", "POST", logInfo, ex.Message);
                 return null!;
             } finally {
                 await con.CloseAsync();
             }
         }
 
-        // Update LastRequest column in session table with updated datetime.
+        /** 
+          * TODO Move to an auth repository class
+          * Update LastRequest column in session table with updated datetime. 
+          */
         public async Task UpdateLastRequest(int employeeId) {
             DateTime lastRequest = DateTime.Now;
             using(SqlConnection connection = new SqlConnection(_conString)) {
@@ -235,14 +297,11 @@ namespace RepositoryLayer
                     int rowsAffected = await command.ExecuteNonQueryAsync();
                     if(rowsAffected == 1) {
                         _logger.LogSuccess("UpdateLastRequest", "PUT", employeeId);
-                        //return await GetEmployee(id);
                     } else {    
                         _logger.LogError("UpdateLastRequest", "PUT", employeeId, "Session Update Error");
-                        //return null!;
                     } 
                 } catch(Exception e) {
                     _logger.LogError("UpdateLastRequest", "PUT", employeeId, e.Message);
-                    //return null!;
                 }
             }            
         }

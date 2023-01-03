@@ -12,7 +12,7 @@ public interface ITicketRepository {
     Task<ReimburseTicket> PostTicket(string guid, string r, double a, string d, DateTime t, int eId);
     Task<ReimburseTicket> GetTicket(string ticketId);
     Task<ReimburseTicket> UpdateTicket(string ticketId, int statusId, int managerId);
-    Task<List<ReimburseTicket>> GetTickets(int employeeId);
+    Task<List<ReimburseTicket>> GetTickets(int employeeId, string sessionId);
     Task<List<ReimburseTicket>> GetTickets(int employeeId, int statusId);
     Task<Queue<ReimburseTicket>> GetPending(int managerId);
 }
@@ -115,12 +115,13 @@ public class TicketRepository : ITicketRepository {
         }
     }
 
-    public async Task<List<ReimburseTicket>> GetTickets(int employeeId) {
+    public async Task<List<ReimburseTicket>> GetTickets(int employeeId, string sessionId) {
         List<ReimburseTicket> employeeTickets = new List<ReimburseTicket>();
         using(SqlConnection connection = new SqlConnection(_conString)) {
-            string queryAllEmployeeTickets = "SELECT T.* FROM Ticket T INNER JOIN Session S ON T.EmployeeId = S.EmployeeId WHERE T.EmployeeId = @employeeId ORDER BY RequestDate;";
+            string queryAllEmployeeTickets = "SELECT T.* FROM Ticket T INNER JOIN Session S ON T.EmployeeId = S.EmployeeId WHERE T.EmployeeId = @employeeId AND SessionId = @sessionId ORDER BY RequestDate;";
             SqlCommand command = new SqlCommand(queryAllEmployeeTickets, connection);
             command.Parameters.AddWithValue("@employeeId", employeeId);
+            command.Parameters.AddWithValue("@sessionId", sessionId);
             return await ExecuteGetTickets(connection, command, employeeId, employeeId);
         }
     }
