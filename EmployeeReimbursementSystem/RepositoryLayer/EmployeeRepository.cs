@@ -9,9 +9,7 @@ using ModelLayer;
 namespace RepositoryLayer
 {
     public interface IEmployeeRepository {
-        // TODO Authorization required
         Task<Employee> UpdateEmployee(int id, int roleId);
-        // TODO Authorization required
         Task<Employee> UpdateEmployee(int id, string info);
         Task<Employee> PostEmployee(string email, string password, int roleId);
         Task<Employee> GetEmployee(string email);
