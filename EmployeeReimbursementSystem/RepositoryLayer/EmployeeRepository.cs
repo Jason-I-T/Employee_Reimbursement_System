@@ -9,12 +9,14 @@ using ModelLayer;
 namespace RepositoryLayer
 {
     public interface IEmployeeRepository {
-        Task<Employee> UpdateEmployee(int id, int roleId);
+        Task<Employee> UpdateEmployee(int id, int roleId, int managerId);
         Task<Employee> UpdateEmployee(int id, string info);
         Task<Employee> PostEmployee(string email, string password, int roleId);
         Task<Employee> GetEmployee(string email);
         Task<Employee> GetEmployee(int id);
         Task<string> LoginEmployee(string email, string password);
+        Task UpdateLastRequest(int employeeId);
+        Task<string> CloseSession(int employeeId);
     }
 
     public class EmployeeRepository : IEmployeeRepository {
@@ -27,7 +29,8 @@ namespace RepositoryLayer
         } 
 
         // Update an employee's role, email, or password
-        public async Task<Employee> UpdateEmployee(int id, int roleId) {
+        public async Task<Employee> UpdateEmployee(int id, int roleId, int managerId) {
+            await UpdateLastRequest(managerId);
             using(SqlConnection connection = new SqlConnection(_conString)) {
                 string updateEmployeeQuery = "UPDATE Employee SET RoleId = @RoleId WHERE EmployeeId = @Id;";
                 SqlCommand command = new SqlCommand(updateEmployeeQuery, connection);
@@ -39,6 +42,7 @@ namespace RepositoryLayer
         }
 
         public async Task<Employee> UpdateEmployee(int id, string info) {
+            await UpdateLastRequest(id);
             string regex = @"^([a-zA-Z0-9_\-\.]+)@([a-zA-Z0-9_\-\.]+)\.([a-zA-Z]{2,5})$";
             using(SqlConnection connection = new SqlConnection(_conString)) {
                 string updateEmployeeQuery;
@@ -119,14 +123,62 @@ namespace RepositoryLayer
                 command.Parameters.AddWithValue("@SessionId", sessionId);
                 command.Parameters.AddWithValue("@EmployeeId", verifiedEmployee.id);
                 command.Parameters.AddWithValue("@LastRequest", timeStamp);
-                return await ExecuteLoginSessionInsert(connection, command, $"{sessionId}, {verifiedEmployee.id}, {timeStamp}");
+                return await ExecuteLoginSessionInsert(connection, command, $"{sessionId}, {verifiedEmployee.id}, {timeStamp}", email);
+            }
+        }
+
+        /** 
+          * TODO Move to an auth repository class
+          * Close a session based on an employee. Checks if session has expired first. 
+          */
+        public async Task<string> CloseSession(int employeeId) { //, string email=null!
+            using(SqlConnection connection = new SqlConnection(_conString)) {
+                string deleteSession = "DELETE FROM Session WHERE EmployeeId = @employeeId AND DATEDIFF(minute, LastRequest, @now) >= 15;"; //
+                SqlCommand command = new SqlCommand(deleteSession, connection);
+                command.Parameters.AddWithValue("@employeeId", employeeId);
+                command.Parameters.AddWithValue("@now", DateTime.Now);
+                try {
+                    await connection.OpenAsync();
+                    int rowsAffected = await command.ExecuteNonQueryAsync();
+                    if(rowsAffected == 1) {
+                        _logger.LogSuccess("CloseSession", "DELETE", employeeId);
+                        return "Success";
+                    } else {
+                        _logger.LogError("CloseSession", "DELETE", employeeId, "Error: invalid input or session still valid");
+                        return null!;
+                    }
+                } catch(Exception ex) {
+                        _logger.LogError("CloseSession", "DELETE", employeeId, ex.Message);
+                        return null!;
+                }
+            }
+        }
+
+        // Close session based on email. For logging in if a session already exists.
+        private async Task<string> CloseSession(string email) {
+            using(SqlConnection connection = new SqlConnection(_conString)) {
+                string deleteSession = "DELETE S FROM Employee E LEFT JOIN Session S ON E.EmployeeId = S.EmployeeId WHERE Email = @email"; //AND DATEDIFF(minute, LastRequest, @now) >= 15;
+                SqlCommand command = new SqlCommand(deleteSession, connection);
+                command.Parameters.AddWithValue("@email", email);
+                try {
+                    await connection.OpenAsync();
+                    int rowsAffected = await command.ExecuteNonQueryAsync();
+                    if(rowsAffected == 1) {
+                        _logger.LogSuccess("CloseSession", "DELETE", email);
+                        return "Success";
+                    } else {
+                        _logger.LogError("CloseSession", "DELETE", email, "Error: invalid input or session still valid");
+                        return null!;
+                    }
+                } catch(Exception ex) {
+                        _logger.LogError("CloseSession", "DELETE", email, ex.Message);
+                        return null!;
+                }
             }
         }
         
         /******************************************* Helper methods *******************************************/
         private async Task<Employee> ExecuteUpdate(SqlConnection con, SqlCommand comm, int id, object logInfo) {
-            // TODO Update LastRequest column in session table for employeeId
-            // UpdateRequestTime(connection, command, eId);
             // Steps for updating an employee
             try { 
                 await con.OpenAsync();
@@ -200,7 +252,7 @@ namespace RepositoryLayer
             }
         }
 
-        private async Task<string> ExecuteLoginSessionInsert(SqlConnection con, SqlCommand comm, object logInfo) {
+        private async Task<string> ExecuteLoginSessionInsert(SqlConnection con, SqlCommand comm, object logInfo, string email) {
             try { 
                 await con.OpenAsync();
                 using(SqlDataReader reader = await comm.ExecuteReaderAsync()) {
@@ -213,12 +265,45 @@ namespace RepositoryLayer
                         return (string) reader[0];
                     }
                 }
-            } catch(Exception e) {
-                _logger.LogError("LoginEmployee", "POST", logInfo, e.Message);
+            } catch(SqlException sex) {  
+                await con.CloseAsync();  
+                if(sex.Number == 2627) { // Unique key constraint error. There's a user logged in with the creds
+                    await CloseSession(email); // Delete existing login session from database, try logging in again
+                    return await ExecuteLoginSessionInsert(con, comm, logInfo, email);
+                }
+                _logger.LogError("LoginEmployee", "POST", logInfo, sex.Message);
+                return null!; 
+            }catch(Exception ex) {
+                _logger.LogError("LoginEmployee", "POST", logInfo, ex.Message);
                 return null!;
             } finally {
                 await con.CloseAsync();
             }
+        }
+
+        /** 
+          * TODO Move to an auth repository class
+          * Update LastRequest column in session table with updated datetime. 
+          */
+        public async Task UpdateLastRequest(int employeeId) {
+            DateTime lastRequest = DateTime.Now;
+            using(SqlConnection connection = new SqlConnection(_conString)) {
+                string updateQuery = "UPDATE Session SET LastRequest = @LastRequest WHERE EmployeeId = @employeeId";
+                SqlCommand command = new SqlCommand(updateQuery, connection);
+                command.Parameters.AddWithValue("@LastRequest", lastRequest);
+                command.Parameters.AddWithValue("@EmployeeId", employeeId);
+                try { 
+                    await connection.OpenAsync();
+                    int rowsAffected = await command.ExecuteNonQueryAsync();
+                    if(rowsAffected == 1) {
+                        _logger.LogSuccess("UpdateLastRequest", "PUT", employeeId);
+                    } else {    
+                        _logger.LogError("UpdateLastRequest", "PUT", employeeId, "Session Update Error");
+                    } 
+                } catch(Exception e) {
+                    _logger.LogError("UpdateLastRequest", "PUT", employeeId, e.Message);
+                }
+            }            
         }
     }
 }

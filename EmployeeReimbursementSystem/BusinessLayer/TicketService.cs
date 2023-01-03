@@ -13,7 +13,7 @@ public interface ITicketService {
     public Task<Queue<ReimburseTicket>> GetPendingTickets(int managerId);
     public Task<ReimburseTicket> ApproveTicket(int managerId, string tickId);
     public Task<ReimburseTicket> DenyTicket(int managerId, string ticketId);
-    public Task<List<ReimburseTicket>> GetEmployeeTickets(int empId);
+    public Task<List<ReimburseTicket>> GetEmployeeTickets(int empId, string sessionId);
     public Task<List<ReimburseTicket>> GetEmployeeTickets(int empId, int status);
 }
 
@@ -65,6 +65,6 @@ public class TicketService : ITicketService {
         return await _itr.UpdateTicket(ticketId, 2, empId);
     }
 
-    public async Task<List<ReimburseTicket>> GetEmployeeTickets(int empId) => await _itr.GetTickets(empId);
+    public async Task<List<ReimburseTicket>> GetEmployeeTickets(int empId, string sessionId) => await _itr.GetTickets(empId, sessionId);
     public async Task<List<ReimburseTicket>> GetEmployeeTickets(int empId, int status) => await _itr.GetTickets(empId, status);
 }
