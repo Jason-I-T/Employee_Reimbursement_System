@@ -15,9 +15,11 @@ public class EmployeeController : ControllerBase {
     // Dependency Injection for Employee Service class and Ticket Service class
     private readonly IEmployeeService _ies;
     private readonly ITicketService _its;
-    public EmployeeController(IEmployeeService ies, ITicketService its) {
+    private readonly IHttpContextAccessor _httpContextAccessor;
+    public EmployeeController(IEmployeeService ies, ITicketService its, IHttpContextAccessor httpContextAccessor) {
         this._ies = ies;
         this._its = its;
+        this._httpContextAccessor = httpContextAccessor;
     }
         
     [HttpPost("Register")]
@@ -37,7 +39,7 @@ public class EmployeeController : ControllerBase {
      * When user logs in, the API will...
      * Verify the credentials against the database
      * DB creates a temporary user session (in a LoginSession table)
-     ** API issues a cookie with a sessionId. 
+     * API issues a cookie with a sessionId. 
      ** Every request, user sends the cookie for authorization.
      ** Server validates the cookie against the session store (here, a table in database)
      ** User logs out, destroy the session & clear the cookie. (will need a logout func, maybe a timeout too?)
@@ -45,13 +47,18 @@ public class EmployeeController : ControllerBase {
     [HttpPost("LoginEmployee")]
     public async Task<ActionResult<Employee>> LoginEmployee(Employee e) {
         string sessionId = null!;
-        try {
+        try { // TODO sessionId is a guid, look into System.Security.Cryptography to generate better ids
             sessionId = await _ies.LoginEmployee(e.email!, e.password!);
+            if(sessionId is null) return StatusCode(400, "Unable to login, invalid input(s).");
+            CookieOptions options = new CookieOptions();
+            options.Expires = DateTime.Now.AddMinutes(15);
+            options.Path = "/"; // ? what does this do
+            options.Secure = true; // Ensure cookie is properly secured using SSL/TLS encryption(?)
+            _httpContextAccessor.HttpContext!.Response.Cookies.Append("AuthCookie", sessionId, options);
         } catch(Exception ex) {
             return StatusCode(500, ex.Message);
         }
-        if(sessionId is null) return StatusCode(400, "Unable to login, invalid input(s).");
-        else return StatusCode(200, sessionId);
+        return StatusCode(200, sessionId);
     }
 
     [HttpPut("ChangePassword")]
