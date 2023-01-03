@@ -54,7 +54,7 @@ public class TicketService : ITicketService {
             _logger.LogError("ApproveTicket", "PUT", $"{empId}, {ticketId}", "Invalid managerId or invalid change requested");
             return null!;
         } 
-        return await _itr.UpdateTicket(ticketId, 1);
+        return await _itr.UpdateTicket(ticketId, 1, empId);
     }
 
     public async Task<ReimburseTicket> DenyTicket(int empId, string ticketId) {
@@ -62,7 +62,7 @@ public class TicketService : ITicketService {
             _logger.LogError("DenyTicket", "PUT", $"{empId}, {ticketId}", "Invalid managerId or invalid change requested");
             return null!;
         } 
-        return await _itr.UpdateTicket(ticketId, 2);
+        return await _itr.UpdateTicket(ticketId, 2, empId);
     }
 
     public async Task<List<ReimburseTicket>> GetEmployeeTickets(int empId) => await _itr.GetTickets(empId);

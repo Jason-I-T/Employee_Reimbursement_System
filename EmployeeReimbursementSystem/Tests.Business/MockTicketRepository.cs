@@ -73,7 +73,7 @@ namespace Tests.Business
             throw new NotImplementedException();
         }
 
-        public Task<ReimburseTicket> UpdateTicket(string ticketId, int statusId)
+        public Task<ReimburseTicket> UpdateTicket(string ticketId, int statusId, int managerId)
         {
             throw new NotImplementedException();
         }

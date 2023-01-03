@@ -11,7 +11,7 @@ namespace RepositoryLayer;
 public interface ITicketRepository {
     Task<ReimburseTicket> PostTicket(string guid, string r, double a, string d, DateTime t, int eId);
     Task<ReimburseTicket> GetTicket(string ticketId);
-    Task<ReimburseTicket> UpdateTicket(string ticketId, int statusId);
+    Task<ReimburseTicket> UpdateTicket(string ticketId, int statusId, int managerId);
     Task<List<ReimburseTicket>> GetTickets(int employeeId);
     Task<List<ReimburseTicket>> GetTickets(int employeeId, int statusId);
     Task<Queue<ReimburseTicket>> GetPending(int managerId);
@@ -26,7 +26,9 @@ public class TicketRepository : ITicketRepository {
         this._conString = File.ReadAllText("../../ConString.txt");
     }
     
-    public async Task<ReimburseTicket> UpdateTicket(string ticketId, int statusId) {
+    public async Task<ReimburseTicket> UpdateTicket(string ticketId, int statusId, int managerId) {
+        // TODO Update LastRequest column in session table for employeeId
+        // UpdateRequestTime(connection, command, managerId);
         using(SqlConnection connection = new SqlConnection(_conString)) {
             string updateTicketQuery = "UPDATE Ticket SET StatusId = @statusId WHERE TicketId = @ticketId";
             SqlCommand command = new SqlCommand(updateTicketQuery, connection);
@@ -50,6 +52,8 @@ public class TicketRepository : ITicketRepository {
     }
 
     public async Task<ReimburseTicket> PostTicket(string guid, string r, double a, string d, DateTime t, int eId) {
+        // TODO Update LastRequest column in session table for employeeId
+        // UpdateRequestTime(connection, command, eId);
         using(SqlConnection connection = new SqlConnection(_conString)) {
             string insertTicketQuery = "INSERT INTO Ticket (TicketId, Reason, Amount, Description, StatusId, RequestDate, EmployeeId) VALUES (@guid, @r, @a, @d, 0, @t, @eId);";
             SqlCommand command = new SqlCommand(insertTicketQuery, connection);
@@ -112,9 +116,11 @@ public class TicketRepository : ITicketRepository {
     }
 
     public async Task<List<ReimburseTicket>> GetTickets(int employeeId) {
+        
         List<ReimburseTicket> employeeTickets = new List<ReimburseTicket>();
         using(SqlConnection connection = new SqlConnection(_conString)) {
-            string queryAllEmployeeTickets = "SELECT * FROM Ticket WHERE EmployeeId = @employeeId ORDER BY RequestDate;";
+            // SELECT T.* FROM Ticket AS T INNER JOIN Session AS S ON T.EmployeeId = S.EmployeeId  WHERE T.EmployeeId = 2 ORDER BY RequestDate
+            string queryAllEmployeeTickets = "SELECT T.* FROM Ticket T INNER JOIN Session S ON T.EmployeeId = S.EmployeeId WHERE T.EmployeeId = @employeeId ORDER BY RequestDate;";
             SqlCommand command = new SqlCommand(queryAllEmployeeTickets, connection);
             command.Parameters.AddWithValue("@employeeId", employeeId);
             return await ExecuteGetTickets(connection, command, employeeId);
@@ -124,7 +130,7 @@ public class TicketRepository : ITicketRepository {
     public async Task<List<ReimburseTicket>> GetTickets(int employeeId, int statusId) {
         List<ReimburseTicket> employeeTickets = new List<ReimburseTicket>();
         using(SqlConnection connection = new SqlConnection(_conString)) {
-            string queryAllEmployeeTickets = "SELECT * FROM Ticket WHERE EmployeeId = @employeeId AND StatusId = @statusId ORDER BY RequestDate;";
+            string queryAllEmployeeTickets = "SELECT T.* FROM Ticket T INNER JOIN Session S ON T.EmployeeId = S.EmployeeId WHERE T.EmployeeId = @employeeId AND StatusId = @statusId ORDER BY RequestDate;";
             SqlCommand command = new SqlCommand(queryAllEmployeeTickets, connection);
             command.Parameters.AddWithValue("@employeeId", employeeId);
             command.Parameters.AddWithValue("@statusId", statusId);
@@ -142,12 +148,14 @@ public class TicketRepository : ITicketRepository {
     }
 
     private async Task<List<ReimburseTicket>> ExecuteGetTickets(SqlConnection con, SqlCommand comm, object logInfo) {
+        // TODO Update LastRequest column in session table for employeeId
+        // UpdateRequestTime(connection, command, employeeId);
         List<ReimburseTicket> employeeTickets = new List<ReimburseTicket>();
         try {
             await con.OpenAsync();
             using(SqlDataReader reader = await comm.ExecuteReaderAsync()) {
                 if(!reader.HasRows) {
-                    _logger.LogError("GetTickets", "GET", logInfo, "No results matching the input.");
+                    _logger.LogError("GetTickets", "GET", logInfo, "No results matching the input and/or unauthorized.");
                     return null!;
                 } 
                 while(await reader.ReadAsync()) {

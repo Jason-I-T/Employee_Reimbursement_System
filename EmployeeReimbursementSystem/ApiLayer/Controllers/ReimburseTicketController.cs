@@ -7,10 +7,6 @@ using Microsoft.AspNetCore.Mvc;
 using ModelLayer;
 using BusinessLayer;
 
-/**
- * TODO, Add descriptive status codes & refactor to be async
- * - Make methods async
- */
 namespace ApiLayer.Controllers
 {
     [ApiController]
@@ -21,6 +17,7 @@ namespace ApiLayer.Controllers
         private readonly ITicketService _its;
         public ReimburseTicketController(ITicketService its) => this._its = its;
 
+        // TODO Add authorization
         [HttpPost("Ticket")]
         public async Task<ActionResult<ReimburseTicket>> Ticket(int employeeId, ReimburseTicket t) {
             ReimburseTicket ticket = new ReimburseTicket();
@@ -33,6 +30,7 @@ namespace ApiLayer.Controllers
             else return StatusCode(201, ticket);
         }
 
+        // TODO Add authorization
         [HttpGet("PendingTickets")]
         public async Task<ActionResult<Queue<ReimburseTicket>>> PendingTickets(int managerId) {
             Queue<ReimburseTicket> tickets = new Queue<ReimburseTicket>();
@@ -45,6 +43,7 @@ namespace ApiLayer.Controllers
             else return StatusCode(200, tickets);
         }
 
+        // TODO Add authorization
         [HttpPut("Approve")]
         public async Task<ActionResult<ReimburseTicket>> Approve(int managerId, string ticketId) {
             ReimburseTicket ticket = new ReimburseTicket();
@@ -57,6 +56,7 @@ namespace ApiLayer.Controllers
             else return StatusCode(200, ticket);
         }
 
+        // TODO Add authorization
         [HttpPut("Deny")]
         public async Task<ActionResult<ReimburseTicket>> Deny(int managerId, string ticketId) {
             ReimburseTicket ticket = new ReimburseTicket();

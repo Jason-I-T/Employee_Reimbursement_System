@@ -16,7 +16,7 @@ public class Program
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen();
 
-        // Adding our scoped services
+        // Adding our services
         builder.Services.AddScoped<IEmployeeService, EmployeeService>();
         builder.Services.AddScoped<ITicketService, TicketService>();
         builder.Services.AddScoped<IEmployeeRepository, EmployeeRepository>();
@@ -24,6 +24,8 @@ public class Program
         builder.Services.AddScoped<IEmployeeValidationService, EmployeeValidationService>();
         builder.Services.AddScoped<ITicketValidationService, TicketValidationService>();
         builder.Services.AddSingleton<IDataLogger, DataLogger>();
+        // Adding this for allowing access to cookies in controller method
+        builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
 
         var app = builder.Build();
 

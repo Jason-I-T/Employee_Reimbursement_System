@@ -14,7 +14,7 @@ namespace RepositoryLayer
         Task<Employee> PostEmployee(string email, string password, int roleId);
         Task<Employee> GetEmployee(string email);
         Task<Employee> GetEmployee(int id);
-        Task<Employee> LoginEmployee(string email, string password);
+        Task<string> LoginEmployee(string email, string password);
     }
 
     public class EmployeeRepository : IEmployeeRepository {
@@ -100,43 +100,33 @@ namespace RepositoryLayer
                 return await ExecuteGet(connection, command, id);
             }
         }
-
-        public async Task<Employee> LoginEmployee(string email, string password) {
+        
+        public async Task<string> LoginEmployee(string email, string password) {
+            string sessionId = Guid.NewGuid().ToString();
             using(SqlConnection connection = new SqlConnection(_conString)) {
+                // Verify credentials against database
                 string queryEmployeeByEmail = "SELECT * FROM Employee WHERE Email = @email AND Password = @password";
                 SqlCommand command = new SqlCommand(queryEmployeeByEmail, connection);
                 command.Parameters.AddWithValue("@Email", email);
                 command.Parameters.AddWithValue("@Password", password);
-                try {
-                    await connection.OpenAsync();
-                    
-                    using(SqlDataReader reader = await command.ExecuteReaderAsync()) {
-                        if(!reader.HasRows) {
-                            
-                            _logger.LogError("LoginEmployee", "GET", $"{email}, {password}", "Login Failure");
-                            return null!;
-                        }
-                        else {
-                            await reader.ReadAsync();
-                            _logger.LogSuccess("LoginEmployee", "GET", $"{email}, {password}");
-                            //return await GetEmployee(email);
-                            return new Employee(
-                                (int)reader[0], 
-                                (string)reader[1], 
-                                (string)reader[2], 
-                                (int)reader[3]
-                            );
-                        }
-                    }
-                } catch(Exception e) {
-                    _logger.LogError("LoginEmployee", "GET", $"{email}, {password}", e.Message);
-                    return null!;
-                }
+                Employee verifiedEmployee = await VerifyLoginCredentials(connection, command, $"{email}, {password}");
+                if(verifiedEmployee is null) return null!;
+
+                // Insert employeeId, sessionId, timestamp into LoginSession table. Return the created sessionId from the database.
+                DateTime timeStamp = DateTime.Now;
+                string insertLoginSession = "INSERT INTO Session VALUES (@SessionId, @EmployeeId, @LastRequest); SELECT SessionId FROM Session WHERE EmployeeId = @EmployeeId;";
+                command = new SqlCommand(insertLoginSession, connection);
+                command.Parameters.AddWithValue("@SessionId", sessionId);
+                command.Parameters.AddWithValue("@EmployeeId", verifiedEmployee.id);
+                command.Parameters.AddWithValue("@LastRequest", timeStamp);
+                return await ExecuteLoginSessionInsert(connection, command, $"{sessionId}, {verifiedEmployee.id}, {timeStamp}");
             }
         }
         
-        // Helper methods
+        /******************************************* Helper methods *******************************************/
         private async Task<Employee> ExecuteUpdate(SqlConnection con, SqlCommand comm, int id, object logInfo) {
+            // TODO Update LastRequest column in session table for employeeId
+            // UpdateRequestTime(connection, command, eId);
             // Steps for updating an employee
             try { 
                 await con.OpenAsync();
@@ -178,6 +168,56 @@ namespace RepositoryLayer
             } catch(Exception e) {
                 _logger.LogError("GetEmployee", "GET", logInfo, e.Message);
                 return null!;
+            }
+        }
+
+        private async Task<Employee> VerifyLoginCredentials(SqlConnection con, SqlCommand comm, object logInfo) {
+            try {
+                await con.OpenAsync();
+                
+                using(SqlDataReader reader = await comm.ExecuteReaderAsync()) {
+                    if(!reader.HasRows) {
+                        
+                        _logger.LogError("LoginEmployee", "POST", logInfo, "Login Failure: Credentials do not match any record");
+                        return null!;
+                    }
+                    else {
+                        await reader.ReadAsync();
+                        _logger.LogSuccess("LoginEmployee", "POST", logInfo);
+                        return new Employee(
+                            (int)reader[0], 
+                            (string)reader[1], 
+                            (string)reader[2], 
+                            (int)reader[3]
+                        );
+                    }
+                }
+            } catch(Exception e) {
+                _logger.LogError("LoginEmployee", "POST", logInfo, e.Message);
+                return null!;
+            } finally {
+                await con.CloseAsync();
+            }
+        }
+
+        private async Task<string> ExecuteLoginSessionInsert(SqlConnection con, SqlCommand comm, object logInfo) {
+            try { 
+                await con.OpenAsync();
+                using(SqlDataReader reader = await comm.ExecuteReaderAsync()) {
+                    if(!reader.HasRows) {
+                        _logger.LogError("LoginEmployee", "POST", logInfo, "Login Error: Insertion error");
+                        return null!;
+                    } else { 
+                        await reader.ReadAsync();   
+                        _logger.LogSuccess("LoginEmployee", "POST", logInfo);
+                        return (string) reader[0];
+                    }
+                }
+            } catch(Exception e) {
+                _logger.LogError("LoginEmployee", "POST", logInfo, e.Message);
+                return null!;
+            } finally {
+                await con.CloseAsync();
             }
         }
     }

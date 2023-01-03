@@ -34,7 +34,7 @@ namespace Tests.Business
             return null!;
         }
 
-        public Task<Employee> LoginEmployee(string email, string password)
+        public Task<String> LoginEmployee(string email, string password)
         {
             throw new NotImplementedException();
         }
