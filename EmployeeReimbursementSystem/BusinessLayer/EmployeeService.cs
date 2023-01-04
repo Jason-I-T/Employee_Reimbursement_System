@@ -11,8 +11,8 @@ namespace BusinessLayer;
 public interface IEmployeeService {
     public Task<Employee> PostEmployee(string email, string password, int roleid);
     public Task<string> LoginEmployee(string email, string password);
-    public Task<Employee> EditEmployee(int id, string oldPassword, string newPassword);
-    public Task<Employee> EditEmployee(int id, string email);
+    public Task<Employee> EditEmployee(int id, string oldPassword, string newPassword, string sessionId);
+    public Task<Employee> EditEmployee(int id, string email, string sessionId);
     public Task<Employee> EditEmployee(int managerId, int employeeId, int roleId, string sessionId);
     // TODO Make an authentication service class
     public Task<string> CloseSession(int employeeId);
@@ -49,22 +49,22 @@ public class EmployeeService : IEmployeeService {
     }
 
     #region // Edit Employee methods
-    public async Task<Employee> EditEmployee(int id, string oldPassword, string newPassword) {
+    public async Task<Employee> EditEmployee(int id, string oldPassword, string newPassword, string sessionId) {
         if(!_ievs.ValidPassword(newPassword) || !_ievs.isPassword(id, oldPassword).Result) {
             _logger.LogError("EditEmail", "PUT", $"{id}, {oldPassword}, {newPassword}", "Invalid password(s)");
             return null!;
         }
 
-        return await _ier.UpdateEmployee(id, newPassword);
+        return await _ier.UpdateEmployee(id, newPassword, sessionId);
     }
 
-    public async Task<Employee> EditEmployee(int id, string email) {
+    public async Task<Employee> EditEmployee(int id, string email, string sessionId) {
         if(!_ievs.ValidEmail(email)) {
             _logger.LogError("EditEmail", "PUT", $"{id}, {email}", "Invalid email");
             return null!;
         }
 
-        return await _ier.UpdateEmployee(id, email);
+        return await _ier.UpdateEmployee(id, email, sessionId);
     }
     public async Task<Employee> EditEmployee(int managerId, int employeeId, int roleId, string sessionId) {
         if(managerId == employeeId) {

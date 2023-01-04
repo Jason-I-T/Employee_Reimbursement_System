@@ -10,7 +10,7 @@ namespace RepositoryLayer
 {
     public interface IEmployeeRepository {
         Task<Employee> UpdateEmployee(int id, int roleId, int managerId, string sessionId);
-        Task<Employee> UpdateEmployee(int id, string info);
+        Task<Employee> UpdateEmployee(int id, string info, string sessionId);
         Task<Employee> PostEmployee(string email, string password, int roleId);
         Task<Employee> GetEmployee(string email);
         Task<Employee> GetEmployee(int id);
@@ -46,8 +46,9 @@ namespace RepositoryLayer
             } 
         }
 
-        public async Task<Employee> UpdateEmployee(int id, string info) {
+        public async Task<Employee> UpdateEmployee(int id, string info, string sessionId) {
             await UpdateLastRequest(id);
+            if(await AuthorizeUser(id, sessionId) is null) return null!;
             string regex = @"^([a-zA-Z0-9_\-\.]+)@([a-zA-Z0-9_\-\.]+)\.([a-zA-Z]{2,5})$";
             using(SqlConnection connection = new SqlConnection(_conString)) {
                 string updateEmployeeQuery;
