@@ -9,10 +9,10 @@ using RepositoryLayer;
 namespace BusinessLayer;
 
 public interface ITicketService { 
-    public Task<ReimburseTicket> AddTicket(int empId, string reason, double amount, string description);
-    public Task<Queue<ReimburseTicket>> GetPendingTickets(int managerId);
-    public Task<ReimburseTicket> ApproveTicket(int managerId, string tickId);
-    public Task<ReimburseTicket> DenyTicket(int managerId, string ticketId);
+    public Task<ReimburseTicket> AddTicket(int empId, string reason, double amount, string description, string sessionId);
+    public Task<Queue<ReimburseTicket>> GetPendingTickets(int managerId, string sessionId);
+    public Task<ReimburseTicket> ApproveTicket(int managerId, string tickId, string sessionId);
+    public Task<ReimburseTicket> DenyTicket(int managerId, string ticketId, string sessionId);
     public Task<List<ReimburseTicket>> GetEmployeeTickets(int empId, string sessionId);
     public Task<List<ReimburseTicket>> GetEmployeeTickets(int empId, int status, string sessionId);
 }
@@ -32,37 +32,37 @@ public class TicketService : ITicketService {
         this._logger = logger;
     }
     
-    public async Task<ReimburseTicket> AddTicket(int empId, string reason, double amount, string desc) {
+    public async Task<ReimburseTicket> AddTicket(int empId, string reason, double amount, string desc, string sessionId) {
         if(!_itvs.ValidTicket(reason, amount, desc)) {
             _logger.LogError("AddTicket", "POST", $"{empId}, {reason}, {amount}, {desc}", "Ticket input is invalid");
             return null!;
         }
         string guid = Guid.NewGuid().ToString();
-        return await _itr.PostTicket(guid, reason, Math.Round(amount, 2), desc, DateTime.Now, empId);
+        return await _itr.PostTicket(guid, reason, Math.Round(amount, 2), desc, DateTime.Now, empId, sessionId);
     }
 
-    public async Task<Queue<ReimburseTicket>> GetPendingTickets(int managerId) {
+    public async Task<Queue<ReimburseTicket>> GetPendingTickets(int managerId, string sessionId) {
         if(!_ievs.isManager(managerId).Result) {
             _logger.LogError("GetPending", "GET", managerId, "Invalid managerId");
             return null!;
         } 
-        return await _itr.GetPending(managerId);
+        return await _itr.GetPending(managerId, sessionId);
     }
 
-    public async Task<ReimburseTicket> ApproveTicket(int empId, string ticketId) {
+    public async Task<ReimburseTicket> ApproveTicket(int empId, string ticketId, string sessionId) {
         if(!_ievs.isManager(empId).Result || !_itvs.ValidStatusChange(empId, ticketId)){
             _logger.LogError("ApproveTicket", "PUT", $"{empId}, {ticketId}", "Invalid managerId or invalid change requested");
             return null!;
         } 
-        return await _itr.UpdateTicket(ticketId, 1, empId);
+        return await _itr.UpdateTicket(ticketId, 1, empId, sessionId);
     }
 
-    public async Task<ReimburseTicket> DenyTicket(int empId, string ticketId) {
+    public async Task<ReimburseTicket> DenyTicket(int empId, string ticketId, string sessionId) {
         if(!_ievs.isManager(empId).Result || !_itvs.ValidStatusChange(empId, ticketId)){
             _logger.LogError("DenyTicket", "PUT", $"{empId}, {ticketId}", "Invalid managerId or invalid change requested");
             return null!;
         } 
-        return await _itr.UpdateTicket(ticketId, 2, empId);
+        return await _itr.UpdateTicket(ticketId, 2, empId, sessionId);
     }
 
     public async Task<List<ReimburseTicket>> GetEmployeeTickets(int empId, string sessionId) => await _itr.GetTickets(empId, sessionId);
