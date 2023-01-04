@@ -174,12 +174,27 @@ public class EmployeeController : ControllerBase {
     [HttpGet("EmployeeTicketsByStatus")]
     public async Task<ActionResult<List<ReimburseTicket>>> EmployeeTickets(int employeeId, int status) {
         List<ReimburseTicket> tickets = new List<ReimburseTicket>();
+        var cookie = Request.Cookies[_cookieName];
         try {
-            tickets = await _its.GetEmployeeTickets(employeeId, status);
+            if(cookie is null) { // If cookie is invalid, close the session. Return unauthenticated status code
+                string result = await _ies.CloseSession(employeeId);
+                return StatusCode(401, $"Error: Invalid cookies or session expired.\nCloseSession: {result}"); 
+            }
+            tickets = await _its.GetEmployeeTickets(employeeId, status, cookie);
         } catch(Exception ex) {
             return StatusCode(500, ex.Message);
         }
         if(tickets is null) return StatusCode(400, "Unable to retrieve tickets, invalid input.");
-        else return StatusCode(200, tickets);
+        else { 
+            // To ensure cookie doesn't expire automatically
+            _httpContextAccessor.HttpContext!.Response.Cookies.Delete(cookie);
+            CookieOptions options = new CookieOptions();
+            options.Expires = DateTime.Now.AddMinutes(15); // Extend time on cookie
+            options.Path = "/"; // Make cookie available to all parts of the system
+            options.Secure = true; // Ensure cookie is properly secured using SSL
+            _httpContextAccessor.HttpContext!.Response.Cookies.Append(_cookieName, cookie, options);
+
+            return StatusCode(200, tickets);
+        }
     }
 }
