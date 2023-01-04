@@ -16,12 +16,12 @@ namespace ApiLayer.Controllers
         // Dependency injection for ticket service class
         private readonly ITicketService _its;
         // TODO Refactor when auth classes are made
-        private readonly IEmployeeService _ies;
+        private readonly IEmployeeAuthService _ieas;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private string _cookieName;
-        public ReimburseTicketController(ITicketService its, IHttpContextAccessor httpContextAccessor, IEmployeeService ies) {
+        public ReimburseTicketController(ITicketService its, IHttpContextAccessor httpContextAccessor, IEmployeeAuthService ieas) {
             this._its = its;
-            this._ies = ies;
+            this._ieas = ieas;
             this._httpContextAccessor = httpContextAccessor;
             this._cookieName = "AuthCookie";
         } 
@@ -32,7 +32,7 @@ namespace ApiLayer.Controllers
             var cookie = Request.Cookies[_cookieName];
             try {
                 if (cookie is null) {
-                    string result = await _ies.CloseSession(employeeId);
+                    string result = await _ieas.CloseSession(employeeId);
                     return StatusCode(401, $"Error: Invalid cookies or session expired.\nCloseSession: {result}");
                 }
                 ticket = await _its.AddTicket(employeeId, t.reason!, t.amount, t.description!, cookie);
@@ -57,7 +57,7 @@ namespace ApiLayer.Controllers
             var cookie = Request.Cookies[_cookieName];
             try {
                 if (cookie is null) {
-                    string result = await _ies.CloseSession(managerId);
+                    string result = await _ieas.CloseSession(managerId);
                     return StatusCode(401, $"Error: Invalid cookies or session expired.\nCloseSession: {result}");
                 }
                 tickets = await _its.GetPendingTickets(managerId, cookie);
@@ -82,7 +82,7 @@ namespace ApiLayer.Controllers
             var cookie = Request.Cookies[_cookieName];
             try {
                 if (cookie is null) {
-                    string result = await _ies.CloseSession(managerId);
+                    string result = await _ieas.CloseSession(managerId);
                     return StatusCode(401, $"Error: Invalid cookies or session expired.\nCloseSession: {result}");
                 }
                 ticket = await _its.ApproveTicket(managerId, ticketId, cookie);
@@ -107,7 +107,7 @@ namespace ApiLayer.Controllers
             var cookie = Request.Cookies[_cookieName];
             try {
                 if (cookie is null) {
-                    string result = await _ies.CloseSession(managerId);
+                    string result = await _ieas.CloseSession(managerId);
                     return StatusCode(401, $"Error: Invalid cookies or session expired.\nCloseSession: {result}");
                 }
                 ticket = await _its.DenyTicket(managerId, ticketId, cookie);

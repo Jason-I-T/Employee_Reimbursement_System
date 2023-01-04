@@ -23,6 +23,7 @@ public class Program
         builder.Services.AddScoped<ITicketRepository, TicketRepository>();
         builder.Services.AddScoped<IEmployeeValidationService, EmployeeValidationService>();
         builder.Services.AddScoped<ITicketValidationService, TicketValidationService>();
+        builder.Services.AddScoped<IEmployeeAuthService, EmployeeAuthService>();
         builder.Services.AddSingleton<IDataLogger, DataLogger>();
         // Adding this for allowing access to cookies in controller method
         builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();

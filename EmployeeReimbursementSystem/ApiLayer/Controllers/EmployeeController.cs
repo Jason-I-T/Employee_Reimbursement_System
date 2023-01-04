@@ -15,11 +15,13 @@ public class EmployeeController : ControllerBase {
     // Dependency Injection for Employee Service class and Ticket Service class
     private readonly IEmployeeService _ies;
     private readonly ITicketService _its;
+    private readonly IEmployeeAuthService _ieas;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private string _cookieName;
-    public EmployeeController(IEmployeeService ies, ITicketService its, IHttpContextAccessor httpContextAccessor) {
+    public EmployeeController(IEmployeeService ies, ITicketService its, IEmployeeAuthService ieas, IHttpContextAccessor httpContextAccessor) {
         this._ies = ies;
         this._its = its;
+        this._ieas = ieas;
         this._httpContextAccessor = httpContextAccessor;
         this._cookieName = "AuthCookie";
     }
@@ -41,7 +43,7 @@ public class EmployeeController : ControllerBase {
         string sessionId = null!;
         try { 
             // TODO sessionId is a guid, look into System.Security.Cryptography to generate better ids
-            sessionId = await _ies.LoginEmployee(e.email!, e.password!);
+            sessionId = await _ieas.LoginEmployee(e.email!, e.password!);
             if(sessionId is null) return StatusCode(400, "Unable to login, invalid input(s).");
             CookieOptions options = new CookieOptions();
             options.Expires = DateTime.Now.AddMinutes(15);
@@ -60,11 +62,11 @@ public class EmployeeController : ControllerBase {
         var cookie = Request.Cookies[_cookieName];
         try {
             if (cookie is null) {
-                logoutResult = await _ies.CloseSession(e.id);
+                logoutResult = await _ieas.CloseSession(e.id);
                 return StatusCode(401, $"Error: Invalid cookies or session expired.\nCloseSession: {logoutResult}");
             }
             // Delete the session in session store
-            logoutResult = await _ies.LogoutEmployee(e.id, cookie);
+            logoutResult = await _ieas.LogoutEmployee(e.id, cookie);
         } catch(Exception ex) {
             return StatusCode(500, ex.Message);
         }
@@ -84,7 +86,7 @@ public class EmployeeController : ControllerBase {
         var cookie = Request.Cookies[_cookieName];
         try {
             if(cookie is null) {
-                string result = await _ies.CloseSession(e.id);
+                string result = await _ieas.CloseSession(e.id);
                 return StatusCode(401, $"Error: Invalid cookies or session expired.\nCloseSession: {result}");
             }
             employee = await _ies.EditEmployee(e.id, oldPassword, e.password!, cookie);
@@ -110,7 +112,7 @@ public class EmployeeController : ControllerBase {
         var cookie = Request.Cookies[_cookieName];
         try {
             if(cookie is null) {
-                string result = await _ies.CloseSession(e.id);
+                string result = await _ieas.CloseSession(e.id);
                 return StatusCode(401, $"Error: Invalid cookies or session expired.\nCloseSession: {result}");
             }
             employee = await _ies.EditEmployee(e.id, e.email!, cookie);
@@ -136,7 +138,7 @@ public class EmployeeController : ControllerBase {
         var cookie = Request.Cookies[_cookieName];
         try {
             if(cookie is null) {
-                string result = await _ies.CloseSession(managerId);
+                string result = await _ieas.CloseSession(managerId);
                 return StatusCode(401, $"Error: Invalid cookies or session expired.\nCloseSession: {result}");
             }
             employee = await _ies.EditEmployee(managerId, targetId, newRoleId, cookie); // Sending cookie for authorization
@@ -163,7 +165,7 @@ public class EmployeeController : ControllerBase {
         var cookie = Request.Cookies[_cookieName];
         try {
             if(cookie is null) { // If cookie is invalid, close the session. Return unauthenticated status code
-                string result = await _ies.CloseSession(employeeId);
+                string result = await _ieas.CloseSession(employeeId);
                 return StatusCode(401, $"Error: Invalid cookies or session expired.\nCloseSession: {result}"); 
             }
             tickets = await _its.GetEmployeeTickets(employeeId, cookie); // Sending cookie for authorization against session store
@@ -190,7 +192,7 @@ public class EmployeeController : ControllerBase {
         var cookie = Request.Cookies[_cookieName];
         try {
             if(cookie is null) { // If cookie is invalid, close the session. Return unauthenticated status code
-                string result = await _ies.CloseSession(employeeId);
+                string result = await _ieas.CloseSession(employeeId);
                 return StatusCode(401, $"Error: Invalid cookies or session expired.\nCloseSession: {result}"); 
             }
             tickets = await _its.GetEmployeeTickets(employeeId, status, cookie);
