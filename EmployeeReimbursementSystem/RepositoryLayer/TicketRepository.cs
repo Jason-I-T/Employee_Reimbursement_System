@@ -9,15 +9,15 @@ using ModelLayer;
 
 namespace RepositoryLayer;
 public interface ITicketRepository {
-    Task<ReimburseTicket> PostTicket(string guid, string r, double a, string d, DateTime t, int eId);
+    Task<ReimburseTicket> PostTicket(string guid, string r, double a, string d, DateTime t, int eId, string sessionId);
     Task<ReimburseTicket> GetTicket(string ticketId);
-    Task<ReimburseTicket> UpdateTicket(string ticketId, int statusId, int managerId);
+    Task<ReimburseTicket> UpdateTicket(string ticketId, int statusId, int managerId, string sessionId);
     Task<List<ReimburseTicket>> GetTickets(int employeeId, string sessionId);
     Task<List<ReimburseTicket>> GetTickets(int employeeId, int statusId, string sessionId);
-    Task<Queue<ReimburseTicket>> GetPending(int managerId);
+    Task<Queue<ReimburseTicket>> GetPending(int managerId, string sessionId);
 }
 
-public class TicketRepository : ITicketRepository {
+public class TicketRepository : ITicketRepository { // TODO Refactor where UpdateLastRequest gets called to fix persisting other users bug
     // Injecting logger
     private readonly IDataLogger _logger;
     // TODO When auth class is made in repo, change this field
@@ -29,8 +29,9 @@ public class TicketRepository : ITicketRepository {
         this._conString = File.ReadAllText("../../ConString.txt");
     }
     
-    public async Task<ReimburseTicket> UpdateTicket(string ticketId, int statusId, int managerId) {
+    public async Task<ReimburseTicket> UpdateTicket(string ticketId, int statusId, int managerId, string sessionId) {
         await _eRepo.UpdateLastRequest(managerId);
+        if(await _eRepo.AuthorizeUser(managerId, sessionId) is null) return null!;
         using(SqlConnection connection = new SqlConnection(_conString)) {
             string updateTicketQuery = "UPDATE Ticket SET StatusId = @statusId WHERE TicketId = @ticketId";
             SqlCommand command = new SqlCommand(updateTicketQuery, connection);
@@ -53,8 +54,9 @@ public class TicketRepository : ITicketRepository {
         }
     }
 
-    public async Task<ReimburseTicket> PostTicket(string guid, string r, double a, string d, DateTime t, int eId) {
+    public async Task<ReimburseTicket> PostTicket(string guid, string r, double a, string d, DateTime t, int eId, string sessionId) {
         await _eRepo.UpdateLastRequest(eId);
+        if(await _eRepo.AuthorizeUser(eId, sessionId) is null) return null!;
         using(SqlConnection connection = new SqlConnection(_conString)) {
             string insertTicketQuery = "INSERT INTO Ticket (TicketId, Reason, Amount, Description, StatusId, RequestDate, EmployeeId) VALUES (@guid, @r, @a, @d, 0, @t, @eId);";
             SqlCommand command = new SqlCommand(insertTicketQuery, connection);
@@ -123,7 +125,6 @@ public class TicketRepository : ITicketRepository {
             string queryAllEmployeeTickets = "SELECT * FROM Ticket T WHERE EmployeeId = @employeeId ORDER BY RequestDate;";
             SqlCommand command = new SqlCommand(queryAllEmployeeTickets, connection);
             command.Parameters.AddWithValue("@employeeId", employeeId);
-            //command.Parameters.AddWithValue("@sessionId", sessionId);
             return await ExecuteGetTickets(connection, command, employeeId, employeeId);
         }
     }
@@ -140,7 +141,9 @@ public class TicketRepository : ITicketRepository {
         }
     }
 
-    public async Task<Queue<ReimburseTicket>> GetPending(int managerId) {
+    public async Task<Queue<ReimburseTicket>> GetPending(int managerId, string sessionId) {
+        await _eRepo.UpdateLastRequest(managerId);
+        if(await _eRepo.AuthorizeUser(managerId, sessionId) is null) return null!;
         using(SqlConnection connection = new SqlConnection(_conString)) {
             string queryAllEmployeeTickets = "SELECT * FROM Ticket WHERE StatusId = @statusId ORDER BY RequestDate;";
             SqlCommand command = new SqlCommand(queryAllEmployeeTickets, connection);

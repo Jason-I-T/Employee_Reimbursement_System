@@ -10,12 +10,12 @@ namespace BusinessLayer;
 
 public interface IEmployeeService {
     public Task<Employee> PostEmployee(string email, string password, int roleid);
-    public Task<string> LoginEmployee(string email, string password);
-    public Task<string> LogoutEmployee(int employeeId, string sessionId);
     public Task<Employee> EditEmployee(int id, string oldPassword, string newPassword, string sessionId);
     public Task<Employee> EditEmployee(int id, string email, string sessionId);
     public Task<Employee> EditEmployee(int managerId, int employeeId, int roleId, string sessionId);
-    // TODO Make an authentication service class
+    // TODO Make an auth class
+    public Task<string> LoginEmployee(string email, string password);
+    public Task<string> LogoutEmployee(int employeeId, string sessionId);
     public Task<string> CloseSession(int employeeId);
 }
 

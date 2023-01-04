@@ -23,7 +23,7 @@ namespace RepositoryLayer
         Task<string> AuthorizeUser(int employeeId, string sessionId);
     }
 
-    public class EmployeeRepository : IEmployeeRepository {
+    public class EmployeeRepository : IEmployeeRepository { // TODO Refactor where UpdateLastRequest gets called to fix persisting other users bug
         // Injecting a logger
         private readonly IDataLogger _logger;
         private string _conString;
@@ -37,7 +37,7 @@ namespace RepositoryLayer
             await UpdateLastRequest(managerId);
             if(await AuthorizeUser(managerId, sessionId) is null) return null!;
             using(SqlConnection connection = new SqlConnection(_conString)) {
-                string updateEmployeeQuery = "UPDATE E SET E.RoleId = @RoleId FROM Employee E INNER JOIN Session S ON E.EmployeeId = S.EmployeeId WHERE E.EmployeeId = @Id;";
+                string updateEmployeeQuery = "UPDATE Employee SET RoleId = @RoleId FROM Employee WHERE EmployeeId = @Id;";
                 SqlCommand command = new SqlCommand(updateEmployeeQuery, connection);
                 command.Parameters.AddWithValue("@RoleId", roleId);
                 command.Parameters.AddWithValue("@Id", id);
