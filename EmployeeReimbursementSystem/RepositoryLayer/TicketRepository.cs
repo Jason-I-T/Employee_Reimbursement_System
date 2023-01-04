@@ -13,13 +13,14 @@ public interface ITicketRepository {
     Task<ReimburseTicket> GetTicket(string ticketId);
     Task<ReimburseTicket> UpdateTicket(string ticketId, int statusId, int managerId);
     Task<List<ReimburseTicket>> GetTickets(int employeeId, string sessionId);
-    Task<List<ReimburseTicket>> GetTickets(int employeeId, int statusId);
+    Task<List<ReimburseTicket>> GetTickets(int employeeId, int statusId, string sessionId);
     Task<Queue<ReimburseTicket>> GetPending(int managerId);
 }
 
 public class TicketRepository : ITicketRepository {
     // Injecting logger
     private readonly IDataLogger _logger;
+    // TODO When auth class is made in repo, change this field
     private readonly IEmployeeRepository _eRepo;
     private string _conString;
     public TicketRepository(IDataLogger logger, IEmployeeRepository eRepo) {
@@ -116,20 +117,22 @@ public class TicketRepository : ITicketRepository {
     }
 
     public async Task<List<ReimburseTicket>> GetTickets(int employeeId, string sessionId) {
-        List<ReimburseTicket> employeeTickets = new List<ReimburseTicket>();
+        await _eRepo.UpdateLastRequest(employeeId);
+        if(await _eRepo.AuthorizeUser(employeeId, sessionId) is null) return null!;
         using(SqlConnection connection = new SqlConnection(_conString)) {
-            string queryAllEmployeeTickets = "SELECT T.* FROM Ticket T INNER JOIN Session S ON T.EmployeeId = S.EmployeeId WHERE T.EmployeeId = @employeeId AND SessionId = @sessionId ORDER BY RequestDate;";
+            string queryAllEmployeeTickets = "SELECT * FROM Ticket T WHERE EmployeeId = @employeeId ORDER BY RequestDate;";
             SqlCommand command = new SqlCommand(queryAllEmployeeTickets, connection);
             command.Parameters.AddWithValue("@employeeId", employeeId);
-            command.Parameters.AddWithValue("@sessionId", sessionId);
+            //command.Parameters.AddWithValue("@sessionId", sessionId);
             return await ExecuteGetTickets(connection, command, employeeId, employeeId);
         }
     }
 
-    public async Task<List<ReimburseTicket>> GetTickets(int employeeId, int statusId) {
-        List<ReimburseTicket> employeeTickets = new List<ReimburseTicket>();
+    public async Task<List<ReimburseTicket>> GetTickets(int employeeId, int statusId, string sessionId) {
+        await _eRepo.UpdateLastRequest(employeeId);
+        if(await _eRepo.AuthorizeUser(employeeId, sessionId) is null) return null!;
         using(SqlConnection connection = new SqlConnection(_conString)) {
-            string queryAllEmployeeTickets = "SELECT T.* FROM Ticket T INNER JOIN Session S ON T.EmployeeId = S.EmployeeId WHERE T.EmployeeId = @employeeId AND StatusId = @statusId ORDER BY RequestDate;";
+            string queryAllEmployeeTickets = "SELECT * FROM Ticket WHERE EmployeeId = @employeeId AND StatusId = @statusId ORDER BY RequestDate;";
             SqlCommand command = new SqlCommand(queryAllEmployeeTickets, connection);
             command.Parameters.AddWithValue("@employeeId", employeeId);
             command.Parameters.AddWithValue("@statusId", statusId);
@@ -147,7 +150,6 @@ public class TicketRepository : ITicketRepository {
     }
 
     private async Task<List<ReimburseTicket>> ExecuteGetTickets(SqlConnection con, SqlCommand comm, object logInfo, int callerId) {
-        await _eRepo.UpdateLastRequest(callerId);
         List<ReimburseTicket> employeeTickets = new List<ReimburseTicket>();
         try {
             await con.OpenAsync();

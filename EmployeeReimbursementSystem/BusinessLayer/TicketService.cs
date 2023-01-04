@@ -14,7 +14,7 @@ public interface ITicketService {
     public Task<ReimburseTicket> ApproveTicket(int managerId, string tickId);
     public Task<ReimburseTicket> DenyTicket(int managerId, string ticketId);
     public Task<List<ReimburseTicket>> GetEmployeeTickets(int empId, string sessionId);
-    public Task<List<ReimburseTicket>> GetEmployeeTickets(int empId, int status);
+    public Task<List<ReimburseTicket>> GetEmployeeTickets(int empId, int status, string sessionId);
 }
 
 public class TicketService : ITicketService {
@@ -66,5 +66,5 @@ public class TicketService : ITicketService {
     }
 
     public async Task<List<ReimburseTicket>> GetEmployeeTickets(int empId, string sessionId) => await _itr.GetTickets(empId, sessionId);
-    public async Task<List<ReimburseTicket>> GetEmployeeTickets(int empId, int status) => await _itr.GetTickets(empId, status);
+    public async Task<List<ReimburseTicket>> GetEmployeeTickets(int empId, int status, string sessionId) => await _itr.GetTickets(empId, status, sessionId);
 }

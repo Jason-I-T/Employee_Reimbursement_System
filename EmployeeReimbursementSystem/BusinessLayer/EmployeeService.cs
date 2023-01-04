@@ -11,9 +11,10 @@ namespace BusinessLayer;
 public interface IEmployeeService {
     public Task<Employee> PostEmployee(string email, string password, int roleid);
     public Task<string> LoginEmployee(string email, string password);
-    public Task<Employee> EditEmployee(int id, string oldPassword, string newPassword);
-    public Task<Employee> EditEmployee(int id, string email);
-    public Task<Employee> EditEmployee(int managerId, int employeeId, int roleId);
+    public Task<string> LogoutEmployee(int employeeId, string sessionId);
+    public Task<Employee> EditEmployee(int id, string oldPassword, string newPassword, string sessionId);
+    public Task<Employee> EditEmployee(int id, string email, string sessionId);
+    public Task<Employee> EditEmployee(int managerId, int employeeId, int roleId, string sessionId);
     // TODO Make an authentication service class
     public Task<string> CloseSession(int employeeId);
 }
@@ -39,6 +40,10 @@ public class EmployeeService : IEmployeeService {
         return await _ier.LoginEmployee(email, password); 
     }
 
+    public async Task<string> LogoutEmployee(int employeeId, string sessionId) {
+        return await _ier.LogoutEmployee(employeeId, sessionId);
+    }
+
     public async Task<Employee> PostEmployee(string email, string password, int roleid) {
         if(!_ievs.ValidRegistration(email, password, roleid)) {
             _logger.LogError("PostEmployee", "POST", $"{email}, {password}, {roleid}", "Invalid email, password, and/or roleId.");
@@ -49,24 +54,24 @@ public class EmployeeService : IEmployeeService {
     }
 
     #region // Edit Employee methods
-    public async Task<Employee> EditEmployee(int id, string oldPassword, string newPassword) {
+    public async Task<Employee> EditEmployee(int id, string oldPassword, string newPassword, string sessionId) {
         if(!_ievs.ValidPassword(newPassword) || !_ievs.isPassword(id, oldPassword).Result) {
             _logger.LogError("EditEmail", "PUT", $"{id}, {oldPassword}, {newPassword}", "Invalid password(s)");
             return null!;
         }
 
-        return await _ier.UpdateEmployee(id, newPassword);
+        return await _ier.UpdateEmployee(id, newPassword, sessionId);
     }
 
-    public async Task<Employee> EditEmployee(int id, string email) {
+    public async Task<Employee> EditEmployee(int id, string email, string sessionId) {
         if(!_ievs.ValidEmail(email)) {
             _logger.LogError("EditEmail", "PUT", $"{id}, {email}", "Invalid email");
             return null!;
         }
 
-        return await _ier.UpdateEmployee(id, email);
+        return await _ier.UpdateEmployee(id, email, sessionId);
     }
-    public async Task<Employee> EditEmployee(int managerId, int employeeId, int roleId) {
+    public async Task<Employee> EditEmployee(int managerId, int employeeId, int roleId, string sessionId) {
         if(managerId == employeeId) {
             _logger.LogError("EditEmail", "PUT", $"{managerId}, {employeeId}, {roleId}", $"Invalid targetId");
             return null!;
@@ -77,7 +82,7 @@ public class EmployeeService : IEmployeeService {
             return null!;
         }
         
-        return await _ier.UpdateEmployee(employeeId, roleId, managerId);
+        return await _ier.UpdateEmployee(employeeId, roleId, managerId, sessionId);
     }
     #endregion
 

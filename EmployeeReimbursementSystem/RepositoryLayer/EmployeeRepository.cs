@@ -9,14 +9,18 @@ using ModelLayer;
 namespace RepositoryLayer
 {
     public interface IEmployeeRepository {
-        Task<Employee> UpdateEmployee(int id, int roleId, int managerId);
-        Task<Employee> UpdateEmployee(int id, string info);
+        Task<Employee> UpdateEmployee(int id, int roleId, int managerId, string sessionId);
+        Task<Employee> UpdateEmployee(int id, string info, string sessionId);
         Task<Employee> PostEmployee(string email, string password, int roleId);
         Task<Employee> GetEmployee(string email);
         Task<Employee> GetEmployee(int id);
+
+        // TODO Move to Auth repo class...
         Task<string> LoginEmployee(string email, string password);
+        Task<string> LogoutEmployee(int employeeId, string sessionId);
         Task UpdateLastRequest(int employeeId);
         Task<string> CloseSession(int employeeId);
+        Task<string> AuthorizeUser(int employeeId, string sessionId);
     }
 
     public class EmployeeRepository : IEmployeeRepository {
@@ -29,20 +33,23 @@ namespace RepositoryLayer
         } 
 
         // Update an employee's role, email, or password
-        public async Task<Employee> UpdateEmployee(int id, int roleId, int managerId) {
+        public async Task<Employee> UpdateEmployee(int id, int roleId, int managerId, string sessionId) {
             await UpdateLastRequest(managerId);
+            if(await AuthorizeUser(managerId, sessionId) is null) return null!;
             using(SqlConnection connection = new SqlConnection(_conString)) {
-                string updateEmployeeQuery = "UPDATE Employee SET RoleId = @RoleId WHERE EmployeeId = @Id;";
+                string updateEmployeeQuery = "UPDATE E SET E.RoleId = @RoleId FROM Employee E INNER JOIN Session S ON E.EmployeeId = S.EmployeeId WHERE E.EmployeeId = @Id;";
                 SqlCommand command = new SqlCommand(updateEmployeeQuery, connection);
                 command.Parameters.AddWithValue("@RoleId", roleId);
-                command.Parameters.AddWithValue("@Id", id); 
+                command.Parameters.AddWithValue("@Id", id);
+                command.Parameters.AddWithValue("@SessionId", sessionId);
 
                 return await ExecuteUpdate(connection, command, id, roleId);
             } 
         }
 
-        public async Task<Employee> UpdateEmployee(int id, string info) {
+        public async Task<Employee> UpdateEmployee(int id, string info, string sessionId) {
             await UpdateLastRequest(id);
+            if(await AuthorizeUser(id, sessionId) is null) return null!;
             string regex = @"^([a-zA-Z0-9_\-\.]+)@([a-zA-Z0-9_\-\.]+)\.([a-zA-Z]{2,5})$";
             using(SqlConnection connection = new SqlConnection(_conString)) {
                 string updateEmployeeQuery;
@@ -105,6 +112,11 @@ namespace RepositoryLayer
             }
         }
         
+        /** 
+          * TODO Move to an auth repository class
+          * Login an employee. First verify credentials, then 
+          * store the session data in the database 
+          */
         public async Task<string> LoginEmployee(string email, string password) {
             string sessionId = Guid.NewGuid().ToString();
             using(SqlConnection connection = new SqlConnection(_conString)) {
@@ -129,9 +141,38 @@ namespace RepositoryLayer
 
         /** 
           * TODO Move to an auth repository class
+          * Delete the login session of an existing logged-in employee 
+          */
+        public async Task<string> LogoutEmployee(int employeeId, string sessionId) {
+            await UpdateLastRequest(employeeId);
+            if(await AuthorizeUser(employeeId, sessionId) is null) return null!;
+            using(SqlConnection connection = new SqlConnection(_conString)) {
+                string deleteSessionQuery = "DELETE FROM Session WHERE EmployeeId = @id AND SessionId = @sId";
+                SqlCommand command = new SqlCommand(deleteSessionQuery, connection);
+                command.Parameters.AddWithValue("@id", employeeId);
+                command.Parameters.AddWithValue("@sId", sessionId);
+                try {
+                    await connection.OpenAsync();
+                    int rowsAffected = await command.ExecuteNonQueryAsync();
+                    if(rowsAffected == 1) {
+                        _logger.LogSuccess("LogoutEmployee", "DELETE", $"{employeeId}, {sessionId}");
+                        return "Success";
+                    } else {
+                        _logger.LogError("LogoutEmployee", "DELETE", $"{employeeId}, {sessionId}", "Delete Error, check database");
+                        return null!;
+                    }
+                } catch(Exception ex) {
+                    _logger.LogError("LogoutEmployee", "DELETE", $"{employeeId}, {sessionId}", ex.Message);
+                    return null!;
+                }
+            }
+        }
+
+        /** 
+          * TODO Move to an auth repository class
           * Close a session based on an employee. Checks if session has expired first. 
           */
-        public async Task<string> CloseSession(int employeeId) { //, string email=null!
+        public async Task<string> CloseSession(int employeeId) {
             using(SqlConnection connection = new SqlConnection(_conString)) {
                 string deleteSession = "DELETE FROM Session WHERE EmployeeId = @employeeId AND DATEDIFF(minute, LastRequest, @now) >= 15;"; //
                 SqlCommand command = new SqlCommand(deleteSession, connection);
@@ -154,7 +195,10 @@ namespace RepositoryLayer
             }
         }
 
-        // Close session based on email. For logging in if a session already exists.
+        /** 
+          * TODO Move to an auth repository class
+          * Close session based on email. For logging in if a session already exists. 
+          */
         private async Task<string> CloseSession(string email) {
             using(SqlConnection connection = new SqlConnection(_conString)) {
                 string deleteSession = "DELETE S FROM Employee E LEFT JOIN Session S ON E.EmployeeId = S.EmployeeId WHERE Email = @email"; //AND DATEDIFF(minute, LastRequest, @now) >= 15;
@@ -223,6 +267,10 @@ namespace RepositoryLayer
             }
         }
 
+        /** 
+          * TODO Move to an auth repository class
+          * Verify login credentials (email, pass) against the database 
+          */
         private async Task<Employee> VerifyLoginCredentials(SqlConnection con, SqlCommand comm, object logInfo) {
             try {
                 await con.OpenAsync();
@@ -252,6 +300,10 @@ namespace RepositoryLayer
             }
         }
 
+        /** 
+          * TODO Move to an auth repository class
+          * Create the login session for the employee in database 
+          */
         private async Task<string> ExecuteLoginSessionInsert(SqlConnection con, SqlCommand comm, object logInfo, string email) {
             try { 
                 await con.OpenAsync();
@@ -302,8 +354,43 @@ namespace RepositoryLayer
                     } 
                 } catch(Exception e) {
                     _logger.LogError("UpdateLastRequest", "PUT", employeeId, e.Message);
+                } finally {
+                    await connection.CloseAsync();
                 }
             }            
+        }
+
+        /** 
+          * TODO Move to an auth repository class
+          * Authorize user using id and sessionId 
+          */
+        public async Task<string> AuthorizeUser(int employeeId, string sessionId) {
+            using(SqlConnection connection = new SqlConnection(_conString)) {
+                string queryVerifyAuth = "SELECT E.* FROM Employee E INNER JOIN Session S ON E.EmployeeId = S.EmployeeId WHERE E.EmployeeId = @Id AND SessionId = @SessionId;";
+                SqlCommand command = new SqlCommand(queryVerifyAuth, connection);
+                command.Parameters.AddWithValue("@Id", employeeId);
+                command.Parameters.AddWithValue("@SessionId", sessionId);    
+                try {
+                    await connection.OpenAsync();
+                    
+                    using(SqlDataReader reader = await command.ExecuteReaderAsync()) {
+                        if(!reader.HasRows) {
+                            _logger.LogError("Authorize", "GET", $"{employeeId}, {sessionId}", "Auth Failure: Credentials invalid");
+                            return null!;
+                        }
+                        else {
+                            await reader.ReadAsync();
+                            _logger.LogSuccess("Authorize", "GET", $"{employeeId}, {sessionId}");
+                            return "Success";
+                        }
+                    }
+                } catch(Exception e) {
+                    _logger.LogError("Authorize", "GET", $"{employeeId}, {sessionId}", e.Message);
+                    return null!;
+                } finally {
+                    await connection.CloseAsync();
+                }
+            }
         }
     }
 }
