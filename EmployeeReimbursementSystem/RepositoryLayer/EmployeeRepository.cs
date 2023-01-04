@@ -9,14 +9,17 @@ using ModelLayer;
 namespace RepositoryLayer
 {
     public interface IEmployeeRepository {
-        Task<Employee> UpdateEmployee(int id, int roleId, int managerId);
+        Task<Employee> UpdateEmployee(int id, int roleId, int managerId, string sessionId);
         Task<Employee> UpdateEmployee(int id, string info);
         Task<Employee> PostEmployee(string email, string password, int roleId);
         Task<Employee> GetEmployee(string email);
         Task<Employee> GetEmployee(int id);
+
+        // TODO Move to Auth repo class...
         Task<string> LoginEmployee(string email, string password);
         Task UpdateLastRequest(int employeeId);
         Task<string> CloseSession(int employeeId);
+        Task<string> AuthorizeUser(int employeeId, string sessionId);
     }
 
     public class EmployeeRepository : IEmployeeRepository {
@@ -29,13 +32,15 @@ namespace RepositoryLayer
         } 
 
         // Update an employee's role, email, or password
-        public async Task<Employee> UpdateEmployee(int id, int roleId, int managerId) {
+        public async Task<Employee> UpdateEmployee(int id, int roleId, int managerId, string sessionId) {
             await UpdateLastRequest(managerId);
+            if(await AuthorizeUser(managerId, sessionId) is null) return null!;
             using(SqlConnection connection = new SqlConnection(_conString)) {
-                string updateEmployeeQuery = "UPDATE Employee SET RoleId = @RoleId WHERE EmployeeId = @Id;";
+                string updateEmployeeQuery = "UPDATE E SET E.RoleId = @RoleId FROM Employee E INNER JOIN Session S ON E.EmployeeId = S.EmployeeId WHERE E.EmployeeId = @Id;";
                 SqlCommand command = new SqlCommand(updateEmployeeQuery, connection);
                 command.Parameters.AddWithValue("@RoleId", roleId);
-                command.Parameters.AddWithValue("@Id", id); 
+                command.Parameters.AddWithValue("@Id", id);
+                command.Parameters.AddWithValue("@SessionId", sessionId);
 
                 return await ExecuteUpdate(connection, command, id, roleId);
             } 
@@ -302,8 +307,43 @@ namespace RepositoryLayer
                     } 
                 } catch(Exception e) {
                     _logger.LogError("UpdateLastRequest", "PUT", employeeId, e.Message);
+                } finally {
+                    await connection.CloseAsync();
                 }
             }            
+        }
+
+        /** 
+          * TODO Move to an auth repository class
+          * Authorize user using id and sessionId 
+          */
+        public async Task<string> AuthorizeUser(int employeeId, string sessionId) {
+            using(SqlConnection connection = new SqlConnection(_conString)) {
+                string queryVerifyAuth = "SELECT E.* FROM Employee E INNER JOIN Session S ON E.EmployeeId = S.EmployeeId WHERE E.EmployeeId = @Id AND SessionId = @SessionId;";
+                SqlCommand command = new SqlCommand(queryVerifyAuth, connection);
+                command.Parameters.AddWithValue("@Id", employeeId);
+                command.Parameters.AddWithValue("@SessionId", sessionId);    
+                try {
+                    await connection.OpenAsync();
+                    
+                    using(SqlDataReader reader = await command.ExecuteReaderAsync()) {
+                        if(!reader.HasRows) {
+                            _logger.LogError("Authorize", "GET", $"{employeeId}, {sessionId}", "Auth Failure: Credentials invalid");
+                            return null!;
+                        }
+                        else {
+                            await reader.ReadAsync();
+                            _logger.LogSuccess("Authorize", "GET", $"{employeeId}, {sessionId}");
+                            return "Success";
+                        }
+                    }
+                } catch(Exception e) {
+                    _logger.LogError("Authorize", "GET", $"{employeeId}, {sessionId}", e.Message);
+                    return null!;
+                } finally {
+                    await connection.CloseAsync();
+                }
+            }
         }
     }
 }

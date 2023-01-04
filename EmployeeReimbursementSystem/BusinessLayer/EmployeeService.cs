@@ -13,7 +13,7 @@ public interface IEmployeeService {
     public Task<string> LoginEmployee(string email, string password);
     public Task<Employee> EditEmployee(int id, string oldPassword, string newPassword);
     public Task<Employee> EditEmployee(int id, string email);
-    public Task<Employee> EditEmployee(int managerId, int employeeId, int roleId);
+    public Task<Employee> EditEmployee(int managerId, int employeeId, int roleId, string sessionId);
     // TODO Make an authentication service class
     public Task<string> CloseSession(int employeeId);
 }
@@ -66,7 +66,7 @@ public class EmployeeService : IEmployeeService {
 
         return await _ier.UpdateEmployee(id, email);
     }
-    public async Task<Employee> EditEmployee(int managerId, int employeeId, int roleId) {
+    public async Task<Employee> EditEmployee(int managerId, int employeeId, int roleId, string sessionId) {
         if(managerId == employeeId) {
             _logger.LogError("EditEmail", "PUT", $"{managerId}, {employeeId}, {roleId}", $"Invalid targetId");
             return null!;
@@ -77,7 +77,7 @@ public class EmployeeService : IEmployeeService {
             return null!;
         }
         
-        return await _ier.UpdateEmployee(employeeId, roleId, managerId);
+        return await _ier.UpdateEmployee(employeeId, roleId, managerId, sessionId);
     }
     #endregion
 

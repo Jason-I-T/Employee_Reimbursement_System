@@ -94,13 +94,28 @@ public class EmployeeController : ControllerBase {
     [HttpPut("ChangeRole")]
     public async Task<ActionResult<Employee>> EditEmployee(int managerId, int targetId, int newRoleId) {
         Employee employee = new Employee();
+        var cookie = Request.Cookies[_cookieName];
         try {
-            employee = await _ies.EditEmployee(managerId, targetId, newRoleId);
+            if(cookie is null) {
+                string result = await _ies.CloseSession(managerId);
+                return StatusCode(401, $"Error: Invalid cookies or session expired.\nCloseSession: {result}");
+            }
+            employee = await _ies.EditEmployee(managerId, targetId, newRoleId, cookie); // Sending cookie for authorization
         } catch(Exception ex) {
             return StatusCode(500, ex.Message);
         }
         if(employee is null) return StatusCode(400, "Unable to update role, invalid input(s).");
-        else return StatusCode(200, employee);
+        else { 
+            // To ensure cookie doesn't expire automatically
+            _httpContextAccessor.HttpContext!.Response.Cookies.Delete(cookie);
+            CookieOptions options = new CookieOptions();
+            options.Expires = DateTime.Now.AddMinutes(15); // Extend time on cookie
+            options.Path = "/"; // Make cookie available to all parts of the system
+            options.Secure = true; // Ensure cookie is properly secured using SSL
+            _httpContextAccessor.HttpContext!.Response.Cookies.Append(_cookieName, cookie, options);
+            
+            return StatusCode(200, employee); 
+        }
     }
 
     [HttpGet("EmployeeTickets")]
