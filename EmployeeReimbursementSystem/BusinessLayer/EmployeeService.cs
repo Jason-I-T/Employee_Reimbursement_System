@@ -11,6 +11,7 @@ namespace BusinessLayer;
 public interface IEmployeeService {
     public Task<Employee> PostEmployee(string email, string password, int roleid);
     public Task<string> LoginEmployee(string email, string password);
+    public Task<string> LogoutEmployee(int employeeId, string sessionId);
     public Task<Employee> EditEmployee(int id, string oldPassword, string newPassword, string sessionId);
     public Task<Employee> EditEmployee(int id, string email, string sessionId);
     public Task<Employee> EditEmployee(int managerId, int employeeId, int roleId, string sessionId);
@@ -37,6 +38,10 @@ public class EmployeeService : IEmployeeService {
         }
         
         return await _ier.LoginEmployee(email, password); 
+    }
+
+    public async Task<string> LogoutEmployee(int employeeId, string sessionId) {
+        return await _ier.LogoutEmployee(employeeId, sessionId);
     }
 
     public async Task<Employee> PostEmployee(string email, string password, int roleid) {

@@ -36,16 +36,6 @@ public class EmployeeController : ControllerBase {
         else return StatusCode(201, employee);
     }
 
-    /**
-     * TODO, do authentication with sessions + cookie.
-     * When user logs in, the API will...
-     * Verify the credentials against the database
-     * DB creates a temporary user session (in a LoginSession table)
-     * API issues a cookie with a sessionId. 
-     ** Every request, user sends the cookie for authorization.
-     ** Server validates the cookie against the session store (here, a table in database)
-     ** User logs out, destroy the session & clear the cookie. (will need a logout func, maybe a timeout too?)
-     */
     [HttpPost("LoginEmployee")]
     public async Task<ActionResult<Employee>> LoginEmployee(Employee e) {
         string sessionId = null!;
@@ -62,6 +52,30 @@ public class EmployeeController : ControllerBase {
             return StatusCode(500, ex.Message);
         }
         return StatusCode(200, sessionId);
+    }
+
+    [HttpDelete("LogoutEmployee")]
+    public async Task<ActionResult<string>> LogoutEmployee(Employee e) {
+        string logoutResult = null!;
+        var cookie = Request.Cookies[_cookieName];
+        try {
+            if (cookie is null) {
+                logoutResult = await _ies.CloseSession(e.id);
+                return StatusCode(401, $"Error: Invalid cookies or session expired.\nCloseSession: {logoutResult}");
+            }
+            // Delete the session in session store
+            logoutResult = await _ies.LogoutEmployee(e.id, cookie);
+        } catch(Exception ex) {
+            return StatusCode(500, ex.Message);
+        }
+        if(logoutResult is null) return StatusCode(400, "Unable to logout, invalid input(s).");
+        else { // Destroy the cookie
+            _httpContextAccessor.HttpContext!.Response.Cookies.Delete(cookie);
+            CookieOptions options = new CookieOptions();
+            options.Expires = DateTime.Now.AddMinutes(-1);
+            _httpContextAccessor.HttpContext!.Response.Cookies.Append(_cookieName, cookie, options);
+            return StatusCode(200, $"Logout result: {logoutResult}");
+        }
     }
 
     [HttpPut("ChangePassword")]
@@ -170,7 +184,6 @@ public class EmployeeController : ControllerBase {
         }
     }
 
-    // TODO Add authorization
     [HttpGet("EmployeeTicketsByStatus")]
     public async Task<ActionResult<List<ReimburseTicket>>> EmployeeTickets(int employeeId, int status) {
         List<ReimburseTicket> tickets = new List<ReimburseTicket>();
