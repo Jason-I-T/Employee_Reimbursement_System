@@ -29,7 +29,7 @@ namespace RepositoryLayer
 
         // Update an employee's role, email, or password
         public async Task<Employee> UpdateEmployee(int id, int roleId, int managerId, string sessionId) {
-            await _iar.UpdateLastRequest(managerId);
+            //await _iar.UpdateLastRequest(managerId);
             if(await _iar.AuthorizeUser(managerId, sessionId) is null) return null!;
             using(SqlConnection connection = new SqlConnection(_conString)) {
                 string updateEmployeeQuery = "UPDATE Employee SET RoleId = @RoleId FROM Employee WHERE EmployeeId = @Id;";
@@ -43,7 +43,7 @@ namespace RepositoryLayer
         }
 
         public async Task<Employee> UpdateEmployee(int id, string info, string sessionId) {
-            await _iar.UpdateLastRequest(id);
+            //await _iar.UpdateLastRequest(id);
             if(await _iar.AuthorizeUser(id, sessionId) is null) return null!;
             string regex = @"^([a-zA-Z0-9_\-\.]+)@([a-zA-Z0-9_\-\.]+)\.([a-zA-Z]{2,5})$";
             using(SqlConnection connection = new SqlConnection(_conString)) {
@@ -115,6 +115,7 @@ namespace RepositoryLayer
                 int rowsAffected = await comm.ExecuteNonQueryAsync();
                 if(rowsAffected == 1) {
                     _logger.LogSuccess("UpdateEmployee", "PUT", logInfo);
+                    await _iar.UpdateLastRequest(id);
                     return await GetEmployee(id);
                 } else {    
                     _logger.LogError("UpdateEmployee", "PUT", logInfo, "Employee Update Error");
