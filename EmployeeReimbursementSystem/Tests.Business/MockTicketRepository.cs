@@ -77,5 +77,30 @@ namespace Tests.Business
         {
             throw new NotImplementedException();
         }
+
+        Task<Queue<ReimburseTicket>> ITicketRepository.GetPending(int managerId, string sessionId)
+        {
+            throw new NotImplementedException();
+        }
+
+        Task<List<ReimburseTicket>> ITicketRepository.GetTickets(int employeeId, string sessionId)
+        {
+            throw new NotImplementedException();
+        }
+
+        Task<List<ReimburseTicket>> ITicketRepository.GetTickets(int employeeId, int statusId, string sessionId)
+        {
+            throw new NotImplementedException();
+        }
+
+        Task<ReimburseTicket> ITicketRepository.PostTicket(string guid, string r, double a, string d, DateTime t, int eId, string sessionId)
+        {
+            throw new NotImplementedException();
+        }
+
+        Task<ReimburseTicket> ITicketRepository.UpdateTicket(string ticketId, int statusId, int managerId, string sessionId)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

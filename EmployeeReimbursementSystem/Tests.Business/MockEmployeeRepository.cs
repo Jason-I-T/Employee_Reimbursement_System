@@ -58,5 +58,15 @@ namespace Tests.Business
         {
             throw new NotImplementedException();
         }
+
+        Task<Employee> IEmployeeRepository.UpdateEmployee(int id, int roleId, int managerId, string sessionId)
+        {
+            throw new NotImplementedException();
+        }
+
+        Task<Employee> IEmployeeRepository.UpdateEmployee(int id, string info, string sessionId)
+        {
+            throw new NotImplementedException();
+        }
     }
 }
