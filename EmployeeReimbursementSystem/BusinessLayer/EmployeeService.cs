@@ -13,31 +13,18 @@ public interface IEmployeeService {
     public Task<Employee> EditEmployee(int id, string oldPassword, string newPassword, string sessionId);
     public Task<Employee> EditEmployee(int id, string email, string sessionId);
     public Task<Employee> EditEmployee(int managerId, int employeeId, int roleId, string sessionId);
-    // TODO Make an auth class
-    // public Task<string> LoginEmployee(string email, string password);
-    // public Task<string> LogoutEmployee(int employeeId, string sessionId);
-    // public Task<string> CloseSession(int employeeId);
 }
 
 public class EmployeeService : IEmployeeService {
 
     private readonly IEmployeeRepository _ier;
-    private IDataLogger _logger;
     private IEmployeeValidationService _ievs;
+    private IDataLogger _logger;
     public EmployeeService(IEmployeeRepository ier, IEmployeeValidationService ievs, IDataLogger logger) { 
         this._ier = ier;
         this._ievs = ievs;
         this._logger = logger;
     }
-
-    // Send sessionId to controller
-    // public async Task<string> LoginEmployee(string email, string password) { 
-         
-    // }
-
-    // public async Task<string> LogoutEmployee(int employeeId, string sessionId) {
-        
-    // }
 
     public async Task<Employee> PostEmployee(string email, string password, int roleid) {
         if(!_ievs.ValidRegistration(email, password, roleid)) {

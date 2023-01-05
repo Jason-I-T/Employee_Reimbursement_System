@@ -17,21 +17,19 @@ public interface ITicketRepository {
     Task<Queue<ReimburseTicket>> GetPending(int managerId, string sessionId);
 }
 
-public class TicketRepository : ITicketRepository { // TODO Refactor where UpdateLastRequest gets called to fix persisting other users bug
-    // Injecting logger
+public class TicketRepository : ITicketRepository {
+    // Injecting logger and Auth repo class
     private readonly IDataLogger _logger;
-    // TODO When auth class is made in repo, change this field
-    private readonly IEmployeeRepository _eRepo;
+    private readonly IAuthRepository _iar;
     private string _conString;
-    public TicketRepository(IDataLogger logger, IEmployeeRepository eRepo) {
+    public TicketRepository(IDataLogger logger, IAuthRepository iar) {
         this._logger = logger;
-        this._eRepo = eRepo;
+        this._iar = iar;
         this._conString = File.ReadAllText("../../ConString.txt");
     }
     
     public async Task<ReimburseTicket> UpdateTicket(string ticketId, int statusId, int managerId, string sessionId) {
-        await _eRepo.UpdateLastRequest(managerId);
-        if(await _eRepo.AuthorizeUser(managerId, sessionId) is null) return null!;
+        if(await _iar.AuthorizeUser(managerId, sessionId) is null) return null!;
         using(SqlConnection connection = new SqlConnection(_conString)) {
             string updateTicketQuery = "UPDATE Ticket SET StatusId = @statusId WHERE TicketId = @ticketId";
             SqlCommand command = new SqlCommand(updateTicketQuery, connection);
@@ -42,6 +40,7 @@ public class TicketRepository : ITicketRepository { // TODO Refactor where Updat
                 int rowsAffected = await command.ExecuteNonQueryAsync();
                 if(rowsAffected == 1) {
                     _logger.LogSuccess("UpdateTicket", "PUT", $"{ticketId}, {statusId}");
+                    await _iar.UpdateLastRequest(managerId);
                     return await GetTicket(ticketId);
                 } else {
                     _logger.LogError("UpdateTicket", "PUT", $"{ticketId}, {statusId}", "Upate failure");
@@ -55,8 +54,7 @@ public class TicketRepository : ITicketRepository { // TODO Refactor where Updat
     }
 
     public async Task<ReimburseTicket> PostTicket(string guid, string r, double a, string d, DateTime t, int eId, string sessionId) {
-        await _eRepo.UpdateLastRequest(eId);
-        if(await _eRepo.AuthorizeUser(eId, sessionId) is null) return null!;
+        if(await _iar.AuthorizeUser(eId, sessionId) is null) return null!;
         using(SqlConnection connection = new SqlConnection(_conString)) {
             string insertTicketQuery = "INSERT INTO Ticket (TicketId, Reason, Amount, Description, StatusId, RequestDate, EmployeeId) VALUES (@guid, @r, @a, @d, 0, @t, @eId);";
             SqlCommand command = new SqlCommand(insertTicketQuery, connection);
@@ -72,6 +70,7 @@ public class TicketRepository : ITicketRepository { // TODO Refactor where Updat
                 int rowsAffected = await command.ExecuteNonQueryAsync();
                 if(rowsAffected == 1) {
                     _logger.LogSuccess("PostTicket", "POST", guid);
+                    await _iar.UpdateLastRequest(eId);
                     return await GetTicket(guid);
                 } else {
                     _logger.LogError("PostTicket", "POST", guid, "Insertion failure.");
@@ -119,8 +118,7 @@ public class TicketRepository : ITicketRepository { // TODO Refactor where Updat
     }
 
     public async Task<List<ReimburseTicket>> GetTickets(int employeeId, string sessionId) {
-        await _eRepo.UpdateLastRequest(employeeId);
-        if(await _eRepo.AuthorizeUser(employeeId, sessionId) is null) return null!;
+        if(await _iar.AuthorizeUser(employeeId, sessionId) is null) return null!;
         using(SqlConnection connection = new SqlConnection(_conString)) {
             string queryAllEmployeeTickets = "SELECT * FROM Ticket T WHERE EmployeeId = @employeeId ORDER BY RequestDate;";
             SqlCommand command = new SqlCommand(queryAllEmployeeTickets, connection);
@@ -130,8 +128,7 @@ public class TicketRepository : ITicketRepository { // TODO Refactor where Updat
     }
 
     public async Task<List<ReimburseTicket>> GetTickets(int employeeId, int statusId, string sessionId) {
-        await _eRepo.UpdateLastRequest(employeeId);
-        if(await _eRepo.AuthorizeUser(employeeId, sessionId) is null) return null!;
+        if(await _iar.AuthorizeUser(employeeId, sessionId) is null) return null!;
         using(SqlConnection connection = new SqlConnection(_conString)) {
             string queryAllEmployeeTickets = "SELECT * FROM Ticket WHERE EmployeeId = @employeeId AND StatusId = @statusId ORDER BY RequestDate;";
             SqlCommand command = new SqlCommand(queryAllEmployeeTickets, connection);
@@ -142,8 +139,7 @@ public class TicketRepository : ITicketRepository { // TODO Refactor where Updat
     }
 
     public async Task<Queue<ReimburseTicket>> GetPending(int managerId, string sessionId) {
-        await _eRepo.UpdateLastRequest(managerId);
-        if(await _eRepo.AuthorizeUser(managerId, sessionId) is null) return null!;
+        if(await _iar.AuthorizeUser(managerId, sessionId) is null) return null!;
         using(SqlConnection connection = new SqlConnection(_conString)) {
             string queryAllEmployeeTickets = "SELECT * FROM Ticket WHERE StatusId = @statusId ORDER BY RequestDate;";
             SqlCommand command = new SqlCommand(queryAllEmployeeTickets, connection);
@@ -158,8 +154,9 @@ public class TicketRepository : ITicketRepository { // TODO Refactor where Updat
             await con.OpenAsync();
             using(SqlDataReader reader = await comm.ExecuteReaderAsync()) {
                 if(!reader.HasRows) {
-                    _logger.LogError("GetTickets", "GET", logInfo, "No results matching the input and/or unauthorized.");
-                    return null!;
+                    _logger.LogError("GetTickets", "GET", logInfo, "No results matching the input.");
+                    await _iar.UpdateLastRequest(callerId);
+                    return employeeTickets;
                 } 
                 while(await reader.ReadAsync()) {
                     ReimburseTicket newTicket = new ReimburseTicket(
@@ -174,6 +171,7 @@ public class TicketRepository : ITicketRepository { // TODO Refactor where Updat
                     employeeTickets.Add(newTicket);
                 }
                 _logger.LogSuccess("GetTickets", "GET", logInfo);
+                await _iar.UpdateLastRequest(callerId);
                 return employeeTickets;
             }
         } catch(Exception e) {

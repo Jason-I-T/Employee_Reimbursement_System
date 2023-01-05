@@ -12,14 +12,15 @@ namespace BusinessLayer
         public Task<string> LoginEmployee(string email, string password);
         public Task<string> LogoutEmployee(int employeeId, string sessionId);
         public Task<string> CloseSession(int employeeId);
+        public Task<string> CloseSession(string sessionId);
     }
     
     public class EmployeeAuthService : IEmployeeAuthService {
-        private readonly IEmployeeRepository _ier;
+        private readonly IAuthRepository _iar;
         private readonly IEmployeeValidationService _ievs;
         private readonly IDataLogger _logger;
-        public EmployeeAuthService(IEmployeeRepository ier, IEmployeeValidationService ievs, IDataLogger logger) {
-            this._ier = ier;
+        public EmployeeAuthService(IAuthRepository iar, IEmployeeValidationService ievs, IDataLogger logger) {
+            this._iar = iar;
             this._ievs = ievs;
             this._logger = logger;
         }
@@ -30,13 +31,16 @@ namespace BusinessLayer
             return null!;
         }
         
-            return await _ier.LoginEmployee(email, password);
+            return await _iar.LoginEmployee(email, password);
         }
 
         public async Task<string> LogoutEmployee(int employeeId, string sessionId)
-            => await _ier.LogoutEmployee(employeeId, sessionId);
+            => await _iar.LogoutEmployee(employeeId, sessionId);
 
         public async Task<string> CloseSession(int employeeId) 
-            => await _ier.CloseSession(employeeId);
+            => await _iar.CloseSession(employeeId);
+
+        public async Task<string> CloseSession(string sessionId)
+            => await _iar.CloseSession(sessionId);
     }
 }

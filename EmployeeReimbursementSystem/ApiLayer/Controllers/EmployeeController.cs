@@ -28,6 +28,7 @@ public class EmployeeController : ControllerBase {
         
     [HttpPost("Register")]
     public async Task<ActionResult<Employee>> PostEmployee(Employee e) {
+        
         Employee employee = new Employee();
         try {
             employee = await _ies.PostEmployee(e.email!, e.password!, e.roleID);
@@ -35,7 +36,14 @@ public class EmployeeController : ControllerBase {
             return StatusCode(500, ex.Message);
         }
         if(employee is null) return StatusCode(400, "Unable to register, invalid input(s).");
-        else return StatusCode(201, employee);
+        else {
+            var cookie = Request.Cookies[_cookieName];
+            if(cookie is not null) { // If there is a session, destroy it
+                _httpContextAccessor.HttpContext!.Response.Cookies.Delete(_cookieName);
+                await CloseSession(cookie); // TODO Be more gentle when doing this?
+            }
+            return StatusCode(201, employee);
+        } 
     }
 
     [HttpPost("LoginEmployee")]
@@ -45,11 +53,7 @@ public class EmployeeController : ControllerBase {
             // TODO sessionId is a guid, look into System.Security.Cryptography to generate better ids
             sessionId = await _ieas.LoginEmployee(e.email!, e.password!);
             if(sessionId is null) return StatusCode(400, "Unable to login, invalid input(s).");
-            CookieOptions options = new CookieOptions();
-            options.Expires = DateTime.Now.AddMinutes(15);
-            options.Path = "/"; // ? what does this do
-            options.Secure = true; // Ensure cookie is properly secured using SSL/TLS encryption(?)
-            _httpContextAccessor.HttpContext!.Response.Cookies.Append(_cookieName, sessionId, options);
+            _httpContextAccessor.HttpContext!.Response.Cookies.Append(_cookieName, sessionId, CookieConfig());
         } catch(Exception ex) {
             return StatusCode(500, ex.Message);
         }
@@ -72,10 +76,7 @@ public class EmployeeController : ControllerBase {
         }
         if(logoutResult is null) return StatusCode(400, "Unable to logout, invalid input(s).");
         else { // Destroy the cookie
-            _httpContextAccessor.HttpContext!.Response.Cookies.Delete(cookie);
-            CookieOptions options = new CookieOptions();
-            options.Expires = DateTime.Now.AddMinutes(-1);
-            _httpContextAccessor.HttpContext!.Response.Cookies.Append(_cookieName, cookie, options);
+            _httpContextAccessor.HttpContext!.Response.Cookies.Delete(_cookieName);
             return StatusCode(200, $"Logout result: {logoutResult}");
         }
     }
@@ -96,12 +97,7 @@ public class EmployeeController : ControllerBase {
         if(employee is null) return StatusCode(400, "Unable to update password, invalid input(s).");
         else {
             // To ensure cookie doesn't expire automatically
-            _httpContextAccessor.HttpContext!.Response.Cookies.Delete(cookie);
-            CookieOptions options = new CookieOptions();
-            options.Expires = DateTime.Now.AddMinutes(15); // Extend time on cookie
-            options.Path = "/"; // Make cookie available to all parts of the system
-            options.Secure = true; // Ensure cookie is properly secured using SSL
-            _httpContextAccessor.HttpContext!.Response.Cookies.Append(_cookieName, cookie, options);
+            _httpContextAccessor.HttpContext!.Response.Cookies.Append(_cookieName, cookie, CookieConfig());
             return StatusCode(200, employee);
         }
     }
@@ -122,12 +118,7 @@ public class EmployeeController : ControllerBase {
         if(employee is null) return StatusCode(400, "Unable to update email, invalid input(s).");
         else {
             // To ensure cookie doesn't expire automatically
-            _httpContextAccessor.HttpContext!.Response.Cookies.Delete(cookie);
-            CookieOptions options = new CookieOptions();
-            options.Expires = DateTime.Now.AddMinutes(15); // Extend time on cookie
-            options.Path = "/"; // Make cookie available to all parts of the system
-            options.Secure = true; // Ensure cookie is properly secured using SSL
-            _httpContextAccessor.HttpContext!.Response.Cookies.Append(_cookieName, cookie, options);
+            _httpContextAccessor.HttpContext!.Response.Cookies.Append(_cookieName, cookie, CookieConfig());
             return StatusCode(200, employee);
         } 
     }
@@ -147,14 +138,7 @@ public class EmployeeController : ControllerBase {
         }
         if(employee is null) return StatusCode(400, "Unable to update role, invalid input(s).");
         else { 
-            // To ensure cookie doesn't expire automatically
-            _httpContextAccessor.HttpContext!.Response.Cookies.Delete(cookie);
-            CookieOptions options = new CookieOptions();
-            options.Expires = DateTime.Now.AddMinutes(15); // Extend time on cookie
-            options.Path = "/"; // Make cookie available to all parts of the system
-            options.Secure = true; // Ensure cookie is properly secured using SSL
-            _httpContextAccessor.HttpContext!.Response.Cookies.Append(_cookieName, cookie, options);
-
+            _httpContextAccessor.HttpContext!.Response.Cookies.Append(_cookieName, cookie, CookieConfig());
             return StatusCode(200, employee); 
         }
     }
@@ -175,13 +159,7 @@ public class EmployeeController : ControllerBase {
         if(tickets is null) return StatusCode(400, "Unable to retrieve tickets, invalid input.");
         else { 
             // To ensure cookie doesn't expire automatically
-            _httpContextAccessor.HttpContext!.Response.Cookies.Delete(cookie);
-            CookieOptions options = new CookieOptions();
-            options.Expires = DateTime.Now.AddMinutes(15); // Extend time on cookie
-            options.Path = "/"; // Make cookie available to all parts of the system
-            options.Secure = true; // Ensure cookie is properly secured using SSL
-            _httpContextAccessor.HttpContext!.Response.Cookies.Append(_cookieName, cookie, options);
-
+            _httpContextAccessor.HttpContext!.Response.Cookies.Append(_cookieName, cookie, CookieConfig());
             return StatusCode(200, tickets);
         }
     }
@@ -202,14 +180,21 @@ public class EmployeeController : ControllerBase {
         if(tickets is null) return StatusCode(400, "Unable to retrieve tickets, invalid input.");
         else { 
             // To ensure cookie doesn't expire automatically
-            _httpContextAccessor.HttpContext!.Response.Cookies.Delete(cookie);
-            CookieOptions options = new CookieOptions();
-            options.Expires = DateTime.Now.AddMinutes(15); // Extend time on cookie
-            options.Path = "/"; // Make cookie available to all parts of the system
-            options.Secure = true; // Ensure cookie is properly secured using SSL
-            _httpContextAccessor.HttpContext!.Response.Cookies.Append(_cookieName, cookie, options);
-
+            _httpContextAccessor.HttpContext!.Response.Cookies.Append(_cookieName, cookie, CookieConfig());
             return StatusCode(200, tickets);
         }
     }
+
+    private CookieOptions CookieConfig() {
+        _httpContextAccessor.HttpContext!.Response.Cookies.Delete(_cookieName);
+        CookieOptions options = new CookieOptions();
+        options.Expires = DateTime.Now.AddMinutes(15); // Extend time on cookie
+        options.Path = "/"; // Make cookie available to all parts of the system
+        options.Secure = true; // Ensure cookie is properly secured using SSL
+        return options;//_httpContextAccessor.HttpContext!.Response.Cookies.Append(_cookieName, cookie, CookieConfig());
+    }
+
+    // only happens when registering and there is a cookie present
+    private async Task<ActionResult<string>> CloseSession(string cookie)
+        => await _ieas.CloseSession(cookie);
 }

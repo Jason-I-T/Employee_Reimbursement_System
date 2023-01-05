@@ -13,9 +13,8 @@ namespace ApiLayer.Controllers
     [Route("api/[controller]")]
     public class ReimburseTicketController : ControllerBase
     {
-        // Dependency injection for ticket service class
+        // Dependency injection
         private readonly ITicketService _its;
-        // TODO Refactor when auth classes are made
         private readonly IEmployeeAuthService _ieas;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private string _cookieName;
@@ -41,12 +40,7 @@ namespace ApiLayer.Controllers
             }
             if(ticket is null) return StatusCode(400, "Unable to add a new ticket, invalid input(s).");
             else {
-                _httpContextAccessor.HttpContext!.Response.Cookies.Delete(cookie);
-                CookieOptions options = new CookieOptions();
-                options.Expires = DateTime.Now.AddMinutes(15); // Extend time on cookie
-                options.Path = "/"; // Make cookie available to all parts of the system
-                options.Secure = true; // Ensure cookie is properly secured using SSL
-                _httpContextAccessor.HttpContext!.Response.Cookies.Append(_cookieName, cookie, options);
+                _httpContextAccessor.HttpContext!.Response.Cookies.Append(_cookieName, cookie, CookieConfig());
                 return StatusCode(201, ticket);
             } 
         }
@@ -66,12 +60,7 @@ namespace ApiLayer.Controllers
             }
             if(tickets is null) return StatusCode(400, "Unable to get pending tickets, invalid input(s).");
             else {
-                _httpContextAccessor.HttpContext!.Response.Cookies.Delete(cookie);
-                CookieOptions options = new CookieOptions();
-                options.Expires = DateTime.Now.AddMinutes(15); // Extend time on cookie
-                options.Path = "/"; // Make cookie available to all parts of the system
-                options.Secure = true; // Ensure cookie is properly secured using SSL
-                _httpContextAccessor.HttpContext!.Response.Cookies.Append(_cookieName, cookie, options);
+                _httpContextAccessor.HttpContext!.Response.Cookies.Append(_cookieName, cookie, CookieConfig());
                 return StatusCode(201, tickets);
             }
         }
@@ -91,12 +80,7 @@ namespace ApiLayer.Controllers
             }
             if(ticket is null) return StatusCode(400, "Unable to approve ticket, invalid input(s).");
             else {
-                _httpContextAccessor.HttpContext!.Response.Cookies.Delete(cookie);
-                CookieOptions options = new CookieOptions();
-                options.Expires = DateTime.Now.AddMinutes(15); // Extend time on cookie
-                options.Path = "/"; // Make cookie available to all parts of the system
-                options.Secure = true; // Ensure cookie is properly secured using SSL
-                _httpContextAccessor.HttpContext!.Response.Cookies.Append(_cookieName, cookie, options);
+                _httpContextAccessor.HttpContext!.Response.Cookies.Append(_cookieName, cookie, CookieConfig());
                 return StatusCode(201, ticket);
             }
         }
@@ -116,14 +100,18 @@ namespace ApiLayer.Controllers
             }
             if(ticket is null) return StatusCode(400, "Unable to deny ticket, invalid input(s).");
             else {
-                _httpContextAccessor.HttpContext!.Response.Cookies.Delete(cookie);
-                CookieOptions options = new CookieOptions();
-                options.Expires = DateTime.Now.AddMinutes(15); // Extend time on cookie
-                options.Path = "/"; // Make cookie available to all parts of the system
-                options.Secure = true; // Ensure cookie is properly secured using SSL
-                _httpContextAccessor.HttpContext!.Response.Cookies.Append(_cookieName, cookie, options);
+                _httpContextAccessor.HttpContext!.Response.Cookies.Append(_cookieName, cookie, CookieConfig());
                 return StatusCode(201, ticket);
             }
+        }
+
+        private CookieOptions CookieConfig() {
+            _httpContextAccessor.HttpContext!.Response.Cookies.Delete(_cookieName);
+            CookieOptions options = new CookieOptions();
+            options.Expires = DateTime.Now.AddMinutes(15); // Extend time on cookie
+            options.Path = "/"; // Make cookie available to all parts of the system
+            options.Secure = true; // Ensure cookie is properly secured using SSL
+            return options;//_httpContextAccessor.HttpContext!.Response.Cookies.Append(_cookieName, cookie, CookieConfig());
         }
     }
 }
