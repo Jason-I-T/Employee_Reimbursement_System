@@ -38,7 +38,7 @@ namespace RepositoryLayer
                 command.Parameters.AddWithValue("@Id", id);
                 command.Parameters.AddWithValue("@SessionId", sessionId);
 
-                return await ExecuteUpdate(connection, command, id, roleId);
+                return await ExecuteUpdate(connection, command, id, managerId, roleId);
             } 
         }
 
@@ -59,7 +59,7 @@ namespace RepositoryLayer
                 command.Parameters.AddWithValue("@info", info); 
                 command.Parameters.AddWithValue("@Id", id);
 
-                return await ExecuteUpdate(connection, command, id, info);
+                return await ExecuteUpdate(connection, command, id, id, info);
             }
         }
 
@@ -108,15 +108,15 @@ namespace RepositoryLayer
         }
         
         /******************************************* Helper methods *******************************************/
-        private async Task<Employee> ExecuteUpdate(SqlConnection con, SqlCommand comm, int id, object logInfo) {
+        private async Task<Employee> ExecuteUpdate(SqlConnection con, SqlCommand comm, int targetId, int callerId, object logInfo) {
             // Steps for updating an employee
             try { 
                 await con.OpenAsync();
                 int rowsAffected = await comm.ExecuteNonQueryAsync();
                 if(rowsAffected == 1) {
                     _logger.LogSuccess("UpdateEmployee", "PUT", logInfo);
-                    await _iar.UpdateLastRequest(id);
-                    return await GetEmployee(id);
+                    await _iar.UpdateLastRequest(callerId);
+                    return await GetEmployee(targetId);
                 } else {    
                     _logger.LogError("UpdateEmployee", "PUT", logInfo, "Employee Update Error");
                     return null!;
