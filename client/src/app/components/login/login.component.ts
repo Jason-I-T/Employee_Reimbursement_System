@@ -28,7 +28,10 @@ export class LoginComponent {
       password: passwordInput,
       roleID: 0
     };
-    var result: any = this._employeeService.login(employee);
+    var result: string='SessionId: ';
+    this._employeeService.login(employee)
+      .subscribe(sessionId => result += sessionId);
+
     // TODO Move to logger
     console.log(result);
   }
