@@ -1,1 +1,11 @@
-<p>login works!</p>
+<div class="login">
+    <h3>Login</h3>
+    <div class="login-form">
+        <label for="login-employee">Email: </label>
+        <input id="login-employee" #email placeholder="example@email.com" /><br>
+        <label for="login-employee">Password: </label>
+        <input id="login-employee" #password placeholder="password123" /><br>
+        <button type="button" class="login-button" (click)="loginEmployee(email.value, password.value)">Login</button>
+        <button type="button" (click)="goBack()">Back</button>
+    </div>
+</div>

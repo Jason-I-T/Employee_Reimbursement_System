@@ -1,4 +1,7 @@
-import { Component } from '@angular/core';
+import { Component, Input } from '@angular/core';
+import { Employee } from 'src/app/models/employee';
+import { EmployeeService } from 'src/app/services/employee.service';
+import { Location } from '@angular/common'; // Used in the helper
 
 @Component({
   selector: 'app-login',
@@ -8,8 +11,30 @@ import { Component } from '@angular/core';
 export class LoginComponent {
   /** 
     * TODO Send a login request to ERS api
-    * - Create the login form
-    * - Get input from login form to be sent to api
+    * x Create the login form
+    * x Get input from login form to instantiate employee to be sent to api
     * - Make a login request using the frontend
     */
+  constructor
+  ( // Dependency injections: EmployeeService, Location (Helper)
+    private _employeeService: EmployeeService, 
+    private _location: Location
+  ) { }
+
+  loginEmployee(emailInput: string, passwordInput: string): void {
+    var employee : Employee = {
+      id: -1,
+      email: emailInput,
+      password: passwordInput,
+      roleID: 0
+    };
+    var result: any = this._employeeService.login(employee);
+    // TODO Move to logger
+    console.log(result);
+  }
+
+  // TODO put in a helper class
+  goBack(): void { 
+    this._location.back();
+  }
 }
