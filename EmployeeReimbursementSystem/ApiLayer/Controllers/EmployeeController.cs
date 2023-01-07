@@ -47,7 +47,7 @@ public class EmployeeController : ControllerBase {
     }
 
     [HttpPost("LoginEmployee")]
-    public async Task<ActionResult<Employee>> LoginEmployee(Employee e) {
+    public async Task<ActionResult<string>> LoginEmployee(Employee e) {
         string sessionId = null!;
         try { 
             // TODO sessionId is a guid, look into System.Security.Cryptography to generate better ids
