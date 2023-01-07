@@ -9,6 +9,18 @@ public class Program
     {
         var builder = WebApplication.CreateBuilder(args);
 
+        // Add CORS
+        var angularCORSPolicy = "AllowAngularFE";
+        builder.Services.AddCors(options => {
+            options.AddPolicy(name: angularCORSPolicy, 
+                policy => { // Add CORS policy so we can consume API in angular frontend
+                    policy.WithOrigins("http://localhost:4200")
+                        .AllowAnyHeader()
+                        .AllowAnyMethod();
+                }
+            );
+        });
+
         // Add services to the container.
 
         builder.Services.AddControllers();
@@ -40,8 +52,9 @@ public class Program
 
         app.UseHttpsRedirection();
 
-        app.UseAuthorization();
+        app.UseCors(angularCORSPolicy);
 
+        app.UseAuthorization();
 
         app.MapControllers();
 

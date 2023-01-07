@@ -17,19 +17,16 @@ export class EmployeeService {
    * - Do the login request, get the sessionId.
    */
   private employeeUrl = 'https://localhost:7240/api/Employee';
-  httpOptions = {
-    headers: new HttpHeaders({ 'Content-Type': 'application/json' })
-  }
-  
   constructor(
     private http: HttpClient,
   ) {  }
 
   login(employee: Employee): Observable<string> {
     // Entry point for logging in
+    var result: string = "";
     var loginUrl: string = this.employeeUrl + '/LoginEmployee';
-    return this.http.post<string>(loginUrl, employee, this.httpOptions).pipe(
-      tap((sessionId: string) => console.log(`Logged in with`)),
+    return this.http.post(loginUrl, employee, {responseType: 'text'}).pipe(
+      tap((sessionId: any) => console.log(`Login success with sessionId ${sessionId}`)),
       catchError(this.handleError<string>('login'))
     );
   }

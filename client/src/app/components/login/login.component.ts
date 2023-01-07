@@ -13,7 +13,8 @@ export class LoginComponent {
     * TODO Send a login request to ERS api
     * x Create the login form
     * x Get input from login form to instantiate employee to be sent to api
-    * - Make a login request using the frontend
+    * x Make a login request using the frontend
+    * - Set the auth cookie
     */
   constructor
   ( // Dependency injections: EmployeeService, Location (Helper)
@@ -28,12 +29,9 @@ export class LoginComponent {
       password: passwordInput,
       roleID: 0
     };
-    var result: string='SessionId: ';
-    this._employeeService.login(employee)
-      .subscribe(sessionId => result += sessionId);
 
-    // TODO Move to logger
-    console.log(result);
+    this._employeeService.login(employee)
+      .subscribe(result => console.log(result));
   }
 
   // TODO put in a helper class
