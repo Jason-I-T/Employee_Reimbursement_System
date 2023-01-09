@@ -11,12 +11,14 @@ public class Program
 
         // Add CORS
         var angularCORSPolicy = "AllowAngularFE";
-        builder.Services.AddCors(options => {
+        builder.Services.AddCors(options => { // Why does this CORS policy let the cookie go to the frontend?
             options.AddPolicy(name: angularCORSPolicy, 
                 policy => { // Add CORS policy so we can consume API in angular frontend
-                    policy.WithOrigins("http://localhost:4200")
+                    policy.WithOrigins("https://localhost:4200")
                         .AllowAnyHeader()
-                        .AllowAnyMethod();
+                        .AllowAnyMethod()
+                        .AllowCredentials()
+                        .SetPreflightMaxAge(TimeSpan.MaxValue);
                 }
             );
         });

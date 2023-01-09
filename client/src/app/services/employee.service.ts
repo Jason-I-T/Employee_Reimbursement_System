@@ -25,7 +25,8 @@ export class EmployeeService {
     // Entry point for logging in
     var result: string = "";
     var loginUrl: string = this.employeeUrl + '/LoginEmployee';
-    return this.http.post(loginUrl, employee, {responseType: 'text'}).pipe(
+    // responseType & witCredentials are necessary for the cookie to appear in angular. Why... 
+    return this.http.post(loginUrl, employee, {responseType: 'text', withCredentials: true}).pipe(
       tap((sessionId: any) => console.log(`Login success with sessionId ${sessionId}`)),
       catchError(this.handleError<string>('login'))
     );
