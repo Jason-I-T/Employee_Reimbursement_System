@@ -9,13 +9,7 @@ import { Location } from '@angular/common'; // Used in the helper
   styleUrls: ['./login.component.css']
 })
 export class LoginComponent {
-  /** 
-    * TODO Send a login request to ERS api
-    * x Create the login form
-    * x Get input from login form to instantiate employee to be sent to api
-    * x Make a login request using the frontend
-    * - Set the auth cookie
-    */
+
   constructor
   ( // Dependency injections: EmployeeService, Location (Helper)
     private _employeeService: EmployeeService, 

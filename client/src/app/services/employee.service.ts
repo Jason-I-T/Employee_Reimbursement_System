@@ -11,11 +11,6 @@ import { Employee } from '../models/employee';
 export class EmployeeService {
   // Method parameters and return values should be the same/similar to API action methods
 
-  /** 
-   * TODO Employee login 
-   * - Parameter is an employee object, returns a string. 
-   * - Do the login request, get the sessionId.
-   */
   private employeeUrl = 'https://localhost:7240/api/Employee';
   constructor(
     private http: HttpClient,
@@ -23,7 +18,6 @@ export class EmployeeService {
 
   login(employee: Employee): Observable<string> {
     // Entry point for logging in
-    var result: string = "";
     var loginUrl: string = this.employeeUrl + '/LoginEmployee';
     // responseType & witCredentials are necessary for the cookie to appear in angular. Why... 
     return this.http.post(loginUrl, employee, {responseType: 'text', withCredentials: true}).pipe(
@@ -32,7 +26,15 @@ export class EmployeeService {
     );
   }
 
-  // Helper
+  register(newEmployee: Employee): Observable<Employee> {
+    var registerUrl: string = this.employeeUrl + '/Register';
+    return this.http.post<Employee>(registerUrl, newEmployee, {headers: new HttpHeaders({ 'Content-Type': 'application/json' }), withCredentials: true}).pipe(
+      tap((employee: Employee) => console.log(`Registration success: ${employee}`)),
+      catchError(this.handleError<Employee>('register'))
+    );
+  }
+
+  // TODO put in a helper class
   private handleError<T>(operation='operation', result?: T) {
     return(error: any): Observable<T> => {
       console.error(error);

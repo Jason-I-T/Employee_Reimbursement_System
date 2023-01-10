@@ -1,0 +1,9 @@
+<div class="register">
+    <h3>Register</h3>
+    <label for="register-employee">Email: </label>
+    <input id="register-employee" #email placeholder="example@email.com"/><br>
+    <label for="register-employee">Password: </label>
+    <input id="register-employee" #password placeholder="Example123"/><br>
+    <button type="button" class="register-button" (click)="registerEmployee(email.value, password.value)">Register</button>
+    <button type="button" (click)="goBack()">Back</button>
+</div>
