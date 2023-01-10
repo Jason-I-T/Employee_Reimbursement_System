@@ -32,6 +32,14 @@ export class EmployeeService {
     );
   }
 
+  register(newEmployee: Employee): Observable<Employee> {
+    var registerUrl: string = this.employeeUrl + '/Register';
+    return this.http.post<Employee>(registerUrl, newEmployee, {headers: new HttpHeaders({ 'Content-Type': 'application/json' }), withCredentials: true}).pipe(
+      tap((employee: Employee) => console.log(`Registration success: ${employee}`)),
+      catchError(this.handleError<Employee>('register'))
+    );
+  }
+
   // Helper
   private handleError<T>(operation='operation', result?: T) {
     return(error: any): Observable<T> => {
