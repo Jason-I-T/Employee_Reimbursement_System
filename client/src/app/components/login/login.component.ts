@@ -25,11 +25,13 @@ export class LoginComponent {
       password: passwordInput,
       roleID: 0
     };
-
     this._employeeService.login(employee)
-      .subscribe(result => console.log(result));
-
-    this._router.navigate(['/']);
+      .subscribe(session => {
+        console.log(session);
+        if(session != null) {
+          this._router.navigate(['/']);
+        }
+      });
   }
 
   // TODO put in a helper class
