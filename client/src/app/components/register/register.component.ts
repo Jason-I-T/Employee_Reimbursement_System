@@ -26,9 +26,12 @@ export class RegisterComponent {
     };
 
     this._employeeService.register(newEmployee)
-      .subscribe(result => console.log(result));
-
-    this._router.navigate(['/login']);
+      .subscribe(result => { 
+        console.log(result);
+        if(result != null) {
+          this._router.navigate(['/login']);
+        }
+      });
   }
 
   // TODO put in a helper class
