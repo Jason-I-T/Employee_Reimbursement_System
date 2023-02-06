@@ -34,6 +34,14 @@ export class EmployeeService {
     );
   }
 
+  logout(sessionId: string): Observable<string> {
+    var logoutUrl: string = this.employeeUrl + '/ForceLogout';
+    return this.http.delete(logoutUrl, {responseType: 'text', withCredentials: true}).pipe(
+      tap((id: string) => console.log(`Logout success with session: ${id}`)),
+      catchError(this.handleError<string>('logout'))
+    );
+  }
+
   // TODO put in a helper class
   private handleError<T>(operation='operation', result?: T) {
     return(error: any): Observable<T> => {
