@@ -195,6 +195,18 @@ public class EmployeeController : ControllerBase {
     }
 
     // only happens when registering and there is a cookie present
-    private async Task<ActionResult<string>> CloseSession(string cookie)
+    [HttpDelete("ForceLogout")]
+    public async Task<ActionResult<string>> CloseSession() { // TODO Use this as the logout instead?
+        var cookie = Request.Cookies[_cookieName];
+        if(cookie != null) {
+            _httpContextAccessor.HttpContext!.Response.Cookies.Delete(_cookieName);
+            await _ieas.CloseSession(cookie);
+            return StatusCode(200, $"Force logout success for {cookie}");
+        } else {
+            return StatusCode(400, "Error");
+        }
+    }
+
+    private async Task<ActionResult<string>> CloseSession(string cookie) 
         => await _ieas.CloseSession(cookie);
 }

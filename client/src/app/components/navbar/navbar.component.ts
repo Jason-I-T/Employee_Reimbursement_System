@@ -1,5 +1,7 @@
 import { Component } from '@angular/core';
+import { Router } from '@angular/router';
 import { CookieService } from 'ngx-cookie-service';
+import { EmployeeService } from 'src/app/services/employee.service';
 
 
 @Component({
@@ -12,6 +14,8 @@ export class NavbarComponent {
 
   constructor(
     private _cookieService: CookieService,
+    private _employeeService: EmployeeService,
+    private _router: Router,
   ) { 
     this.isLoggedIn = false;
   }
@@ -28,5 +32,15 @@ export class NavbarComponent {
       this.isLoggedIn = false;
     }
     return this.isLoggedIn;
+  }
+
+  logoutWithSession() {
+    var cookie: string = this._cookieService.get('AuthCookie');
+    this._employeeService.logout(cookie).subscribe(result => {
+      console.log(result);
+      if(result != null) {
+        this._router.navigate(['/']);
+      }
+    });
   }
 }
