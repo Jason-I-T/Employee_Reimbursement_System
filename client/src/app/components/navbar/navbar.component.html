@@ -1,7 +1,7 @@
 <div *ngIf="loginStatus(); else loggedOut">
     <ul>
         <li><a routerLink="/">Home</a></li>
-        <li><button type="button" class="logout-button" (click)="logoutWithSession()">Logout</button></li>
+        <li><a routerLink="" class="logout-button" (click)="logoutWithSession()">Logout</a></li>
     </ul>
 </div>
 <ng-template #loggedOut>
